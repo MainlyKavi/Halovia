@@ -9,7 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = incoming.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
   const base = new URL(`${protocol}://${host}`);
   const title = "Halovia — Protection that travels with you";
-  const description = "An installable journey-safety prototype for testing local journey setup, safety check-ins, and emergency-action previews.";
+  const description = "Share your journey with people you trust and get calm safety check-ins when something feels unusual.";
   const socialImage = new URL("/og.png", base).toString();
   return {
     metadataBase: base,
@@ -23,7 +23,7 @@ export async function generateMetadata(): Promise<Metadata> {
       { media: "(prefers-color-scheme: light)", color: "#f7f6f2" },
       { media: "(prefers-color-scheme: dark)", color: "#17171c" },
     ],
-    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg", apple: "/icons/icon-192.png" },
+    icons: { icon: "/favicon.svg", shortcut: "/favicon.svg", apple: "/icons/icon.svg" },
     openGraph: { title, description, type: "website", siteName: "Halovia", images: [{ url: socialImage, width: 1536, height: 1024, alt: "Halovia — Protection that travels with you" }] },
     twitter: { card: "summary_large_image", title, description, images: [socialImage] },
   };
@@ -31,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" dir="ltr" data-theme="pink" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body><AppProvider>{children}</AppProvider></body>
     </html>
   );

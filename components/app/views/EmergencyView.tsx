@@ -5,71 +5,21 @@ import { AlertOctagon, AlertTriangle, BellRing, Info, MapPinned, PhoneCall, Sire
 import { useApp } from "@/components/app/AppProvider";
 import { Button, Card, Dialog } from "@/components/ui/Primitives";
 
-type EmergencyAction = "dialer" | "contacts" | "location" | "alarm" | "info";
-
 export function EmergencyView() {
-  const { state, t, showToast, recordJourneyEvent } = useApp();
-  const [action, setAction] = useState<EmergencyAction | null>(null);
-  const [infoOpen, setInfoOpen] = useState(false);
-  const actions: Array<{ kind: EmergencyAction; icon: typeof PhoneCall; title: string; text: string; tone: string; working: boolean }> = [
-    { kind: "dialer", icon: PhoneCall, title: t("emergency.dialer"), text: t("emergency.dialerText", { number: state.emergency.number }), tone: "call", working: true },
-    { kind: "contacts", icon: BellRing, title: t("emergency.alert"), text: t("emergency.alertText"), tone: "alert", working: false },
-    { kind: "location", icon: MapPinned, title: t("emergency.location"), text: t("emergency.locationText"), tone: "location", working: true },
-    { kind: "alarm", icon: Siren, title: t("emergency.alarm"), text: t("emergency.alarmText"), tone: "alarm", working: true },
-    { kind: "info", icon: Info, title: t("emergency.info"), text: t("emergency.infoText"), tone: "info", working: true },
+  const { state, t, showToast } = useApp();
+  const [action, setAction] = useState("");
+  const actions = [
+    { icon: PhoneCall, title: t("emergency.call"), text: t("emergency.callText", { number: state.emergency.number, region: state.emergency.region }), tone: "call" },
+    { icon: BellRing, title: t("emergency.alert"), text: t("emergency.alertText"), tone: "alert" },
+    { icon: MapPinned, title: t("emergency.location"), text: t("emergency.locationText"), tone: "location" },
+    { icon: Siren, title: t("emergency.alarm"), text: t("emergency.alarmText"), tone: "alarm" },
+    { icon: Info, title: t("emergency.info"), text: t("emergency.infoText"), tone: "info" },
   ];
-  const selected = actions.find((item) => item.kind === action);
-
-  async function perform() {
-    const selectedAction = action;
-    setAction(null);
-    if (!selectedAction) return;
-    if (selectedAction === "dialer") {
-      window.location.href = `tel:${state.emergency.number.replace(/[^+\d]/g, "")}`;
-      showToast(t("emergency.dialerOpened"));
-      return;
-    }
-    if (selectedAction === "contacts") {
-      recordJourneyEvent("emergencyActionPreview", "contacts");
-      showToast(t("emergency.noMessageSent"));
-      return;
-    }
-    if (selectedAction === "location") {
-      const summary = state.activeJourney
-        ? `${t("common.prototype")}: ${state.activeJourney.origin} → ${state.activeJourney.destination}. ${t("emergency.noLiveCoordinates")}`
-        : t("emergency.noSavedJourney");
-      try { await navigator.clipboard.writeText(summary); showToast(t("emergency.locationCopied")); }
-      catch { showToast(t("emergency.copyFailed")); }
-      recordJourneyEvent("emergencyActionPreview", "location");
-      return;
-    }
-    if (selectedAction === "alarm") {
-      try {
-        const context = new AudioContext();
-        [0, 0.28, 0.56].forEach((offset) => {
-          const oscillator = context.createOscillator();
-          const gain = context.createGain();
-          oscillator.frequency.value = 820;
-          gain.gain.setValueAtTime(0.08, context.currentTime + offset);
-          gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + offset + 0.2);
-          oscillator.connect(gain).connect(context.destination);
-          oscillator.start(context.currentTime + offset);
-          oscillator.stop(context.currentTime + offset + 0.2);
-        });
-        showToast(t("emergency.alarmPlayed"));
-      } catch { showToast(t("emergency.alarmFailed")); }
-      recordJourneyEvent("emergencyActionPreview", "alarm");
-      return;
-    }
-    setInfoOpen(true);
-  }
-
   return <div className="view-stack emergency-view">
     <header className="view-heading"><div><p className="eyebrow"><AlertOctagon size={15} />{t("nav.emergency")}</p><h1>{t("emergency.title")}</h1><p>{t("emergency.subtitle")}</p></div></header>
-    <Card className="emergency-reality-check"><AlertTriangle size={22} /><div><strong>{t("emergency.prototypeTitle")}</strong><p>{t("emergency.prototypeText")}</p></div></Card>
-    <div className="emergency-grid">{actions.map(({ kind, icon: Icon, title, text, tone, working }) => <button key={kind} type="button" className={`emergency-action emergency-action-${tone}`} onClick={() => setAction(kind)}><span><Icon size={24} /></span><div><strong>{title}</strong><p>{text}</p><small>{working ? t("emergency.deviceAction") : t("emergency.simulationOnly")}</small></div></button>)}</div>
+    <div className="emergency-number"><span><PhoneCall size={26} /></span><div><small>{t("emergency.call")}</small><strong>{state.emergency.number}</strong><p>{state.emergency.region}</p></div><Button variant="danger" size="lg" onClick={() => setAction(t("emergency.call"))}>{t("common.continue")}</Button></div>
+    <div className="emergency-grid">{actions.slice(1).map(({ icon: Icon, title, text, tone }) => <button key={title} type="button" className={`emergency-action emergency-action-${tone}`} onClick={() => setAction(title)}><span><Icon size={24} /></span><div><strong>{title}</strong><p>{text}</p></div></button>)}</div>
     <Card className="network-notice"><AlertTriangle size={21} /><p>{t("emergency.networkCopy")}</p></Card>
-    <Dialog open={Boolean(action)} onClose={() => setAction(null)} title={t("emergency.confirmTitle")} description={selected ? t("emergency.confirmText", { action: selected.title }) : undefined}><div className="prototype-note"><AlertTriangle size={16} />{selected?.kind === "dialer" ? t("emergency.dialerConfirm") : selected?.working ? t("emergency.localActionConfirm") : t("emergency.simulationConfirm")}</div><div className="dialog-actions"><Button variant="ghost" onClick={() => setAction(null)}>{t("common.cancel")}</Button><Button variant="danger" onClick={perform}>{t("common.confirm")}</Button></div></Dialog>
-    <Dialog open={infoOpen} onClose={() => setInfoOpen(false)} title={t("emergency.infoTitle")} description={t("emergency.infoDescription")}><dl className="emergency-info-list"><div><dt>{t("settings.emergency")}</dt><dd>{state.emergency.number}</dd></div><div><dt>{t("settings.country")}</dt><dd>{state.emergency.country}</dd></div><div><dt>{t("emergency.journeyStored")}</dt><dd>{state.activeJourney ? t("common.yes") : t("common.no")}</dd></div></dl><div className="dialog-actions"><Button onClick={() => setInfoOpen(false)}>{t("common.close")}</Button></div></Dialog>
+    <Dialog open={Boolean(action)} onClose={() => setAction("")} title={t("emergency.confirmTitle")} description={t("emergency.confirmText", { action })}><div className="prototype-note"><AlertTriangle size={16} />{t("safety.prototype")}</div><div className="dialog-actions"><Button variant="ghost" onClick={() => setAction("")}>{t("common.cancel")}</Button><Button variant="danger" onClick={() => { setAction(""); showToast(t("emergency.simulated")); }}>{t("common.confirm")}</Button></div></Dialog>
   </div>;
 }

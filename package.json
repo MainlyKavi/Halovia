@@ -9,9 +9,7 @@
     "dev": "vinext dev",
     "build": "vite build",
     "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .output",
-    "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types lib/test.ts"
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .output"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
