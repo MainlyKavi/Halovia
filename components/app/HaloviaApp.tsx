@@ -10,10 +10,25 @@ import { JourneysView } from "@/components/app/views/JourneysView";
 import { JourneyDetailView } from "@/components/app/views/JourneyDetailView";
 import { SettingsView } from "@/components/app/views/SettingsView";
 import { OnboardingFlow } from "@/components/onboarding/OnboardingFlow";
+import { LaunchRouter } from "@/components/public/LaunchRouter";
+import { PublicInfoPage, type PublicPageKind } from "@/components/public/PublicInfoPage";
+import { TrustedViewer } from "@/components/public/TrustedViewer";
+
+const publicPages: Record<string, PublicPageKind> = {
+  privacy: "privacy",
+  terms: "terms",
+  "safety-limitations": "safety",
+  feedback: "feedback",
+  "report-problem": "report",
+  offline: "offline",
+};
 
 export function HaloviaApp({ segments }: { segments: string[] }) {
   const route = `/${segments.join("/")}`;
   if (segments[0] === "onboarding") return <OnboardingFlow />;
+  if (segments[0] === "launch") return <LaunchRouter />;
+  if (segments[0] === "viewer" && segments[1]) return <TrustedViewer token={segments[1]} />;
+  if (publicPages[segments[0]]) return <PublicInfoPage kind={publicPages[segments[0]]} />;
   let view: React.ReactNode = <HomeView />;
   if (segments[0] === "start") view = <StartJourneyView />;
   else if (segments[0] === "active") view = <ActiveJourneyView />;
