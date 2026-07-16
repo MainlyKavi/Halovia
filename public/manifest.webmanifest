@@ -1,0 +1,33 @@
+{
+  "name": "Halovia — Journey Safety",
+  "short_name": "Halovia",
+  "description": "Share active journeys with people you trust and access calm safety check-ins.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#f7f6f2",
+  "theme_color": "#6f63d9",
+  "orientation": "portrait-primary",
+  "categories": ["lifestyle", "navigation", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start a Journey",
+      "short_name": "Start",
+      "url": "/start",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Emergency actions",
+      "short_name": "Emergency",
+      "url": "/emergency",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}
