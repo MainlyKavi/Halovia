@@ -1,4 +1,4 @@
-# Halovia
+# Halovia v1
 
 Halovia is a polished, mobile-first journey-safety prototype. It lets a user share an active trip with selected trusted contacts, respond to calm safety check-ins, review journey history, and quickly open emergency actions.
 
