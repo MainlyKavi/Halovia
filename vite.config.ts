@@ -60,9 +60,6 @@ export default defineConfig(async () => {
         vinext(),
         nitro({
           preset: "vercel",
-          output: {
-            dir: ".output",
-          },
         }),
       ],
     };
