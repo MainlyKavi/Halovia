@@ -1,33 +1,22 @@
 {
-  "name": "Halovia — Journey Safety",
+  "name": "Halovia — Journey Safety Prototype",
   "short_name": "Halovia",
-  "description": "Share active journeys with people you trust and access calm safety check-ins.",
-  "start_url": "/home",
+  "description": "An installable journey-safety prototype with local demo data and safety check-in previews.",
+  "start_url": "/launch",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f7f6f2",
-  "theme_color": "#6f63d9",
+  "background_color": "#fff7f8",
+  "theme_color": "#ce6685",
   "orientation": "portrait-primary",
   "categories": ["lifestyle", "navigation", "utilities"],
   "icons": [
-    {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "shortcuts": [
-    {
-      "name": "Start a Journey",
-      "short_name": "Start",
-      "url": "/start",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "Emergency actions",
-      "short_name": "Emergency",
-      "url": "/emergency",
-      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
-    }
+    { "name": "Open Halovia", "short_name": "Open", "url": "/launch", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] },
+    { "name": "Emergency action previews", "short_name": "Emergency", "url": "/emergency", "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }] }
   ]
 }
