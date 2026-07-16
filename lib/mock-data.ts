@@ -1,137 +1,147 @@
 import type { AppState, Journey, TrustedContact } from "@/lib/types";
+import { createId } from "./state/app-state.ts";
 
-export const mockContacts: TrustedContact[] = [
+const demoContacts: TrustedContact[] = [
   {
-    id: "contact-1",
-    name: "Ananya Rao",
-    relationship: "Sister",
-    phone: "+91 98765 43210",
-    initials: "AR",
+    id: "demo-contact-one",
+    name: "Demo Contact One",
+    relationship: "Sample contact",
+    phone: "demo-contact-1",
+    initials: "D1",
     color: "#7c6ee6",
     preference: "all",
     active: true,
     defaultForJourneys: true,
     emergencyAlerts: true,
+    isDemo: true,
   },
   {
-    id: "contact-2",
-    name: "Kabir Mehta",
-    relationship: "Friend",
-    phone: "+91 99887 76124",
-    initials: "KM",
-    color: "#e07b8f",
+    id: "demo-contact-two",
+    name: "Demo Contact Two",
+    relationship: "Sample contact",
+    phone: "demo-contact-2",
+    initials: "D2",
+    color: "#ce6685",
     preference: "emergency",
     active: true,
     defaultForJourneys: true,
     emergencyAlerts: true,
-  },
-  {
-    id: "contact-3",
-    name: "Maya Rao",
-    relationship: "Mother",
-    phone: "+91 91234 55678",
-    initials: "MR",
-    color: "#4f9f8f",
-    preference: "all",
-    active: true,
-    defaultForJourneys: false,
-    emergencyAlerts: true,
+    isDemo: true,
   },
 ];
 
-const completedJourney: Journey = {
-  id: "journey-001",
-  origin: "Koramangala",
-  destination: "Home · Indiranagar",
-  startedAt: "2026-07-14T18:10:00.000Z",
-  eta: "2026-07-14T18:42:00.000Z",
-  endedAt: "2026-07-14T18:39:00.000Z",
-  durationMinutes: 29,
-  travelType: "cab",
-  status: "arrivedSafely",
-  contactIds: ["contact-1", "contact-2"],
-  safetyCheckOccurred: false,
-  alertTriggered: false,
-  progress: 100,
-  vehicleNumber: "KA 01 AB 4821",
-  events: [
-    { id: "e1", type: "journeyStarted", timestamp: "2026-07-14T18:10:00.000Z" },
-    { id: "e2", type: "onRoute", timestamp: "2026-07-14T18:16:00.000Z" },
-    { id: "e3", type: "arrivedSafely", timestamp: "2026-07-14T18:39:00.000Z" },
-  ],
-};
-
-const checkedJourney: Journey = {
-  id: "journey-002",
-  origin: "Bengaluru City Station",
-  destination: "Church Street",
-  startedAt: "2026-07-11T15:25:00.000Z",
-  eta: "2026-07-11T15:55:00.000Z",
-  endedAt: "2026-07-11T16:02:00.000Z",
-  durationMinutes: 37,
-  travelType: "publicTransport",
-  status: "arrivedSafely",
-  contactIds: ["contact-1"],
-  safetyCheckOccurred: true,
-  alertTriggered: false,
-  progress: 100,
-  events: [
-    { id: "e4", type: "journeyStarted", timestamp: "2026-07-11T15:25:00.000Z" },
-    { id: "e5", type: "safetyCheckRequested", timestamp: "2026-07-11T15:48:00.000Z" },
-    { id: "e6", type: "arrivedSafely", timestamp: "2026-07-11T16:02:00.000Z" },
-  ],
-};
-
-export function createSampleJourney(): Journey {
-  const startedAt = new Date(Date.now() - 26 * 60_000);
-  const eta = new Date(Date.now() + 22 * 60_000);
+export function createEmptyState(): AppState {
   return {
-    id: "active-sample",
-    origin: "Home · Indiranagar",
-    destination: "Kempegowda International Airport",
-    startedAt: startedAt.toISOString(),
-    eta: eta.toISOString(),
-    durationMinutes: 48,
-    travelType: "cab",
-    status: "onRoute",
-    contactIds: ["contact-1", "contact-2"],
-    safetyCheckOccurred: false,
-    alertTriggered: false,
-    progress: 58,
-    vehicleNumber: "KA 03 MN 2470",
-    driverName: "Ramesh K.",
-    note: "Terminal 1 departures",
-    events: [
-      { id: "active-e1", type: "journeyStarted", timestamp: startedAt.toISOString() },
-      { id: "active-e2", type: "onRoute", timestamp: new Date(startedAt.getTime() + 6 * 60_000).toISOString() },
-    ],
-  };
-}
-
-export function createDefaultState(): AppState {
-  return {
+    version: 2,
+    mode: "clean",
     user: {
-      id: "user-1",
-      name: "Aarav",
+      id: createId("user"),
+      name: "",
       language: "en",
-      theme: "light",
+      locale: "en-IN",
+      country: "IN",
+      dateFormat: "locale",
+      theme: "pink",
       onboardingComplete: false,
-      region: "IN",
     },
-    contacts: mockContacts,
-    history: [completedJourney, checkedJourney],
-    activeJourney: createSampleJourney(),
+    contacts: [],
+    history: [],
+    activeJourney: null,
+    safetyCheck: null,
     emergency: {
       number: "112",
-      region: "India",
+      country: "IN",
       shareLastLocation: true,
       soundAlarm: true,
     },
     privacy: {
       historyRetention: "30",
       reducedMotion: false,
-      notifications: true,
-      locationWhileActive: true,
+      notifications: false,
+      locationWhileActive: false,
+      soundEnabled: false,
+      vibrationEnabled: false,
+      safetyResponseSeconds: 45,
     },
+    demoViewerToken: null,
+  };
+}
+
+function createCompletedDemoJourney(offsetDays: number, checked: boolean): Journey {
+  const endedAt = new Date(Date.now() - offsetDays * 24 * 60 * 60_000);
+  const startedAt = new Date(endedAt.getTime() - 32 * 60_000);
+  const eta = new Date(startedAt.getTime() + 38 * 60_000);
+  return {
+    id: `demo-history-${offsetDays}`,
+    origin: "Demo start point",
+    destination: "Demo destination",
+    startedAt: startedAt.toISOString(),
+    eta: eta.toISOString(),
+    endedAt: endedAt.toISOString(),
+    durationMinutes: 32,
+    travelType: offsetDays % 2 ? "walking" : "publicTransport",
+    status: "arrivedSafely",
+    contactIds: ["demo-contact-one"],
+    safetyCheckOccurred: checked,
+    prototypeEscalationTriggered: false,
+    progress: 100,
+    lastLocationUpdateAt: endedAt.toISOString(),
+    connectionStatus: "online",
+    emergencyState: "none",
+    isDemo: true,
+    events: [
+      { id: createId("event"), type: "journeyStarted", timestamp: startedAt.toISOString() },
+      ...(checked
+        ? [{ id: createId("event"), type: "safeCheckIn" as const, timestamp: new Date(startedAt.getTime() + 18 * 60_000).toISOString() }]
+        : []),
+      { id: createId("event"), type: "arrivedSafely", timestamp: endedAt.toISOString() },
+    ],
+  };
+}
+
+export function createDemoJourney(): Journey {
+  const startedAt = new Date(Date.now() - 12 * 60_000);
+  const eta = new Date(Date.now() + 28 * 60_000);
+  return {
+    id: createId("demo-journey"),
+    origin: "Demo start point",
+    destination: "Demo destination",
+    startedAt: startedAt.toISOString(),
+    eta: eta.toISOString(),
+    durationMinutes: 40,
+    travelType: "cab",
+    status: "onRoute",
+    contactIds: demoContacts.map((contact) => contact.id),
+    safetyCheckOccurred: false,
+    prototypeEscalationTriggered: false,
+    progress: 30,
+    vehicleNumber: "DEMO VEHICLE",
+    driverName: "Demo driver",
+    note: "Sample journey data — no real trip or person.",
+    lastLocationUpdateAt: new Date().toISOString(),
+    connectionStatus: "online",
+    emergencyState: "none",
+    isDemo: true,
+    events: [
+      { id: createId("event"), type: "journeyStarted", timestamp: startedAt.toISOString() },
+      { id: createId("event"), type: "onRoute", timestamp: new Date(startedAt.getTime() + 4 * 60_000).toISOString() },
+    ],
+  };
+}
+
+export function createDemoState(): AppState {
+  const state = createEmptyState();
+  return {
+    ...state,
+    mode: "demo",
+    user: {
+      ...state.user,
+      name: "Demo Traveller",
+      onboardingComplete: true,
+    },
+    contacts: demoContacts.map((contact) => ({ ...contact })),
+    history: [createCompletedDemoJourney(2, false), createCompletedDemoJourney(5, true)],
+    activeJourney: createDemoJourney(),
+    demoViewerToken: createId("viewer"),
   };
 }
