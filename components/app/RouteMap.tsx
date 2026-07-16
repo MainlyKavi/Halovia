@@ -3,7 +3,7 @@
 import { MapPin, Navigation } from "lucide-react";
 import { useApp } from "@/components/app/AppProvider";
 
-export function RouteMap({ compact = false, progress = 58 }: { compact?: boolean; progress?: number }) {
+export function RouteMap({ compact = false, progress = 0 }: { compact?: boolean; progress?: number }) {
   const { t } = useApp();
   return (
     <div className={`mock-map ${compact ? "mock-map-compact" : ""}`} aria-label={t("active.route")}>
