@@ -1,14 +1,20 @@
 export type Theme = "light" | "dark" | "pink";
-export type Language = "en" | "hi" | "es";
+export type Language = "en" | "hi" | "es" | "fr" | "ru" | "ar";
+export type Locale = "en-IN" | "en-US" | "hi-IN" | "es-ES" | "fr-FR" | "ru-RU" | "ar-SA";
+export type CountryCode = "IN" | "US" | "ES" | "FR" | "RU" | "SA" | "OTHER";
+export type DateFormatPreference = "locale" | "dayFirst" | "monthFirst";
 export type NotificationPreference = "all" | "emergency" | "none";
+export type AppMode = "clean" | "demo";
 
 export interface User {
   id: string;
   name: string;
   language: Language;
+  locale: Locale;
+  country: CountryCode;
+  dateFormat: DateFormatPreference;
   theme: Theme;
   onboardingComplete: boolean;
-  region: "IN" | "US" | "ES";
 }
 
 export interface TrustedContact {
@@ -22,6 +28,7 @@ export interface TrustedContact {
   active: boolean;
   defaultForJourneys: boolean;
   emergencyAlerts: boolean;
+  isDemo?: boolean;
 }
 
 export type JourneyStatus =
@@ -30,15 +37,25 @@ export type JourneyStatus =
   | "slightDelay"
   | "routeChanged"
   | "safetyCheckRequested"
-  | "contactAlerted"
+  | "safeCheckIn"
+  | "helpRequested"
+  | "prototypeEscalated"
   | "arrivedSafely"
   | "endedManually";
 
+export type JourneyEventType =
+  | JourneyStatus
+  | "safetyCheckExtended"
+  | "connectionLost"
+  | "emergencyActionPreview";
+
 export type TravelType = "cab" | "walking" | "publicTransport" | "driving" | "other";
+export type ConnectionStatus = "online" | "offline";
+export type EmergencyState = "none" | "helpRequested" | "prototypeEscalated";
 
 export interface JourneyEvent {
   id: string;
-  type: JourneyStatus;
+  type: JourneyEventType;
   timestamp: string;
   detail?: string;
 }
@@ -55,33 +72,60 @@ export interface Journey {
   status: JourneyStatus;
   contactIds: string[];
   safetyCheckOccurred: boolean;
-  alertTriggered: boolean;
+  prototypeEscalationTriggered: boolean;
   progress: number;
   vehicleNumber?: string;
   driverName?: string;
   note?: string;
+  vehicleImageName?: string;
+  lastCheckInAt?: string;
+  lastLocationUpdateAt: string;
+  connectionStatus: ConnectionStatus;
+  emergencyState: EmergencyState;
+  isDemo?: boolean;
   events: JourneyEvent[];
 }
 
 export interface EmergencySettings {
   number: string;
-  region: string;
+  country: CountryCode;
   shareLastLocation: boolean;
   soundAlarm: boolean;
 }
 
+export type HistoryRetention = "auto" | "7" | "30" | "manual";
+
 export interface PrivacyPreferences {
-  historyRetention: "auto" | "7" | "30" | "manual";
+  historyRetention: HistoryRetention;
   reducedMotion: boolean;
   notifications: boolean;
   locationWhileActive: boolean;
+  soundEnabled: boolean;
+  vibrationEnabled: boolean;
+  safetyResponseSeconds: 30 | 45 | 60;
+}
+
+export type SafetyCheckReason = "routeChanged" | "slightDelay" | "extendedStop" | "manualDemo";
+
+export interface SafetyCheckState {
+  id: string;
+  reason: SafetyCheckReason;
+  startedAt: string;
+  deadlineAt: string;
+  responseSeconds: number;
+  extensionUsed: boolean;
+  escalated: boolean;
 }
 
 export interface AppState {
+  version: 2;
+  mode: AppMode;
   user: User;
   contacts: TrustedContact[];
   history: Journey[];
   activeJourney: Journey | null;
+  safetyCheck: SafetyCheckState | null;
   emergency: EmergencySettings;
   privacy: PrivacyPreferences;
+  demoViewerToken: string | null;
 }
