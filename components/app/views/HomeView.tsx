@@ -6,6 +6,7 @@ import { ArrowRight, Bell, Clock3, Lightbulb, MapPin, Navigation, PhoneCall, Shi
 import { EndJourneyDialog } from "@/components/app/EndJourneyDialog";
 import { useApp } from "@/components/app/AppProvider";
 import { RouteMap } from "@/components/app/RouteMap";
+import { TransportIcon } from "@/components/app/TransportIcon";
 import { Avatar, Button, Card, EmptyState, Progress, StatusBadge } from "@/components/ui/Primitives";
 import { formatDate, formatTime } from "@/lib/i18n/format";
 
@@ -28,7 +29,7 @@ export function HomeView() {
       {active ? (
         <Card className="active-home-card">
           <div className="active-home-top"><span className="destination-icon"><Navigation size={20} /></span><div><small>{t("home.destination")}</small><h2>{active.destination}</h2></div></div>
-          <RouteMap compact progress={active.progress} />
+          <RouteMap compact journey={active} />
           <Progress value={active.progress} label={t("active.estimatedProgress")} />
           <div className="active-meta"><span><Clock3 size={18} /><small>{t("home.eta")}</small><strong>{formatTime(active.eta, state.user.locale)}</strong></span><span><ShieldCheck size={18} /><small>{t("active.safetyStatus")}</small><strong>{t(`status.${active.status}` as Parameters<typeof t>[0])}</strong></span><span><UsersRound size={18} /><small>{t("active.selectedContacts")}</small><strong>{selectedContacts.length}</strong></span></div>
           <div className="active-actions"><Button variant="safe" size="lg" onClick={safeCheckIn}><ShieldCheck size={20} />{t("home.imSafe")}</Button><Link href="/active" className="button button-primary button-lg">{t("home.openJourney")}<ArrowRight size={18} /></Link><Button variant="ghost" onClick={() => setEndOpen(true)}>{t("home.endJourney")}</Button></div>
@@ -48,7 +49,7 @@ export function HomeView() {
 
       <Card className="recent-section">
         <div className="card-heading"><div><span className="eyebrow"><Clock3 size={15} />{t("home.recent")}</span><h2>{t("home.recent")}</h2></div>{state.history.length > 0 && <Link href="/journeys">{t("home.viewAll")}<ArrowRight size={16} /></Link>}</div>
-        {state.history.length === 0 ? <EmptyState icon={<Clock3 size={24} />} title={t("journeys.emptyTitle")} text={t("journeys.emptyText")} /> : <div className="journey-mini-list">{state.history.slice(0, 2).map((journey) => <Link href={`/journeys/${journey.id}`} key={journey.id}><span className="journey-icon"><MapPin size={18} /></span><span><strong>{journey.destination}</strong><small>{formatDate(journey.startedAt, state.user.locale, state.user.dateFormat)} · {t(`travel.${journey.travelType}` as Parameters<typeof t>[0])}</small></span><StatusBadge status={journey.status} /></Link>)}</div>}
+        {state.history.length === 0 ? <EmptyState icon={<Clock3 size={24} />} title={t("journeys.emptyTitle")} text={t("journeys.emptyText")} /> : <div className="journey-mini-list">{state.history.slice(0, 2).map((journey) => <Link href={`/journeys/${journey.id}`} key={journey.id}><span className="journey-icon"><TransportIcon type={journey.travelType} size={18} /></span><span><strong>{journey.destination}</strong><small>{formatDate(journey.startedAt, state.user.locale, state.user.dateFormat)} · {t(`travel.${journey.travelType}` as Parameters<typeof t>[0])}</small></span><StatusBadge status={journey.status} /></Link>)}</div>}
       </Card>
 
       <div className="tip-card"><Lightbulb size={21} /><div><strong>{t("home.tipTitle")}</strong><p>{t("home.tipText")}</p></div></div>

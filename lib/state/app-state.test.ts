@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createDemoState, createEmptyState } from "../mock-data.ts";
-import { applyHistoryRetention, calculateJourneyProgress, normalizeAppState } from "./app-state.ts";
+import {
+  applyHistoryRetention,
+  calculateJourneyProgress,
+  completeJourneyTransition,
+  createDefaultEta,
+  escalateSafetyCheckTransition,
+  extendSafetyCheckTransition,
+  normalizeAppState,
+  recordSafeCheckInTransition,
+  requestHelpTransition,
+  resolveLaunchRoute,
+} from "./app-state.ts";
 import type { Journey } from "../types.ts";
 
 const day = 24 * 60 * 60_000;
@@ -76,4 +87,86 @@ test("corrupt or legacy browser data falls back to a clean empty state", () => {
   assert.deepEqual(normalized.history, []);
   assert.equal(normalized.activeJourney, null);
   assert.equal(normalized.user.theme, "pink");
+});
+
+test("saved theme, language, locale, and RTL language remain independent", () => {
+  const fallback = createEmptyState();
+  const normalized = normalizeAppState({
+    ...fallback,
+    user: { ...fallback.user, theme: "dark", language: "ar", locale: "fr-FR", country: "US", dateFormat: "monthFirst" },
+  }, fallback);
+  assert.equal(normalized.user.theme, "dark");
+  assert.equal(normalized.user.language, "ar");
+  assert.equal(normalized.user.locale, "fr-FR");
+  assert.equal(normalized.user.country, "US");
+  assert.equal(normalized.user.dateFormat, "monthFirst");
+});
+
+test("new journey ETAs default to a valid 30 to 45 minute window", () => {
+  const eta = new Date(createDefaultEta(now, 40)).getTime();
+  assert.equal(eta - now, 40 * 60_000);
+  assert.equal(new Date(createDefaultEta(now, 5)).getTime() - now, 30 * 60_000);
+  assert.equal(new Date(createDefaultEta(now, 90)).getTime() - now, 45 * 60_000);
+});
+
+test("legacy driving journeys migrate to the car or cab transport type", () => {
+  const fallback = createEmptyState();
+  const legacyJourney = { ...completedJourney("legacy-driving", 1), travelType: "driving" };
+  const normalized = normalizeAppState({ ...fallback, history: [legacyJourney] }, fallback);
+  assert.equal(normalized.history[0]?.travelType, "cab");
+});
+
+test("safe check-ins persist an event, clear emergencies, and prevent rapid duplicates", () => {
+  const state = createDemoState();
+  state.safetyCheck = {
+    id: "check-1",
+    reason: "manualDemo",
+    startedAt: new Date(now - 10_000).toISOString(),
+    deadlineAt: new Date(now + 45_000).toISOString(),
+    responseSeconds: 45,
+    extensionUsed: false,
+    escalated: false,
+  };
+  const checked = recordSafeCheckInTransition(state, now);
+  assert.equal(checked.safetyCheck, null);
+  assert.equal(checked.activeJourney?.status, "safeCheckIn");
+  assert.equal(checked.activeJourney?.events.at(-1)?.type, "safeCheckIn");
+  assert.equal(recordSafeCheckInTransition(checked, now + 1_000), checked);
+});
+
+test("safety-check extension, help, escalation, and journey ending are consistent", () => {
+  const state = createDemoState();
+  state.safetyCheck = {
+    id: "check-2",
+    reason: "extendedStop",
+    startedAt: new Date(now - 5_000).toISOString(),
+    deadlineAt: new Date(now + 40_000).toISOString(),
+    responseSeconds: 45,
+    extensionUsed: false,
+    escalated: false,
+  };
+  const extended = extendSafetyCheckTransition(state, now);
+  assert.equal(extended.safetyCheck?.extensionUsed, true);
+  assert.equal(new Date(extended.safetyCheck?.deadlineAt ?? 0).getTime(), now + 160_000);
+  assert.equal(extendSafetyCheckTransition(extended, now + 1_000), extended);
+
+  const helped = requestHelpTransition(state, now);
+  assert.equal(helped.safetyCheck, null);
+  assert.equal(helped.activeJourney?.emergencyState, "helpRequested");
+
+  const escalated = escalateSafetyCheckTransition(state, now);
+  assert.equal(escalated.safetyCheck?.escalated, true);
+  assert.equal(escalated.activeJourney?.emergencyState, "prototypeEscalated");
+
+  const ended = completeJourneyTransition(state, "endedManually", now);
+  assert.equal(ended.activeJourney, null);
+  assert.equal(ended.safetyCheck, null);
+  assert.equal(ended.history[0]?.status, "endedManually");
+});
+
+test("launch routing never bypasses onboarding and prioritises an active journey", () => {
+  const clean = createEmptyState();
+  assert.equal(resolveLaunchRoute(clean), "/");
+  assert.equal(resolveLaunchRoute({ ...clean, user: { ...clean.user, onboardingComplete: true } }), "/home");
+  assert.equal(resolveLaunchRoute(createDemoState()), "/active");
 });

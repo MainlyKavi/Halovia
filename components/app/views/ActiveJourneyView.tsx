@@ -7,6 +7,7 @@ import { EndJourneyDialog } from "@/components/app/EndJourneyDialog";
 import { useApp } from "@/components/app/AppProvider";
 import { RouteMap } from "@/components/app/RouteMap";
 import { SafetyCheckModal } from "@/components/app/SafetyCheckModal";
+import { VehicleImagePreview } from "@/components/app/VehicleImagePreview";
 import { Avatar, Button, Card, Progress, StatusBadge } from "@/components/ui/Primitives";
 import { formatDateTime, formatTime } from "@/lib/i18n/format";
 
@@ -36,7 +37,7 @@ export function ActiveJourneyView() {
     <Card className="live-journey-card">
       <div className="live-route-heading"><div><small>{t("home.destination")}</small><h2>{journey.destination}</h2></div><div className="eta-box"><Clock3 size={17} /><span><small>{t("home.eta")}</small><strong>{formatTime(journey.eta, state.user.locale)}</strong></span></div></div>
 
-      <RouteMap progress={journey.progress} />
+      <RouteMap journey={journey} />
       <Progress value={journey.progress} label={t("active.estimatedProgress")} />
 
       <div className={`safety-status-card safety-status-${journey.emergencyState}`}><span className="safety-state-icon">{journey.emergencyState === "none" ? <ShieldCheck size={25} /> : <AlertTriangle size={25} />}</span><div><small>{t("active.safetyStatus")}</small><h2>{t(`status.${journey.status}` as Parameters<typeof t>[0])}</h2><p>{journey.emergencyState === "helpRequested" ? t("active.helpLocalState") : journey.emergencyState === "prototypeEscalated" ? t("active.escalationLocalState") : journey.lastCheckInAt ? t("active.lastSafeAt", { time: formatTime(journey.lastCheckInAt, state.user.locale) }) : t("active.statusPrototypeCopy")}</p></div></div>
@@ -48,6 +49,8 @@ export function ActiveJourneyView() {
       <div className="live-actions-secondary"><Link href="/emergency" className="button button-danger button-lg"><ShieldAlert size={21} />{t("nav.emergency")}</Link><Button variant="secondary" size="lg" onClick={() => setEndOpen(true)}>{t("home.endJourney")}</Button></div>
 
       <div className="journey-health-grid secondary-health"><div><span className="health-icon"><BatteryCharging size={19} /></span><span><small>{t("active.battery")}</small><strong>{t("active.mockBattery")}</strong></span></div><div><span className={`health-icon ${journey.connectionStatus === "online" ? "" : "warn"}`}>{journey.connectionStatus === "online" ? <Signal size={19} /> : <SignalZero size={19} />}</span><span><small>{t("active.connection")}</small><strong>{journey.connectionStatus === "online" ? t("common.network") : t("common.offline")}</strong></span></div><div><span className="health-icon"><Clock3 size={19} /></span><span><small>{t("active.lastLocation")}</small><strong>{formatDateTime(journey.lastLocationUpdateAt, state.user.locale, state.user.dateFormat)}</strong></span></div></div>
+
+      {(journey.driverName || journey.vehicleNumber || journey.vehicleDescription || journey.vehicleImageId) && <details className="active-vehicle"><summary>{t("start.vehicleTitle")}</summary><dl>{journey.driverName && <div><dt>{t("start.driverName")}</dt><dd>{journey.driverName}</dd></div>}{journey.vehicleNumber && <div><dt>{t("start.vehicleNumber")}</dt><dd>{journey.vehicleNumber}</dd></div>}{journey.vehicleDescription && <div><dt>{t("start.vehicleDescription")}</dt><dd>{journey.vehicleDescription}</dd></div>}</dl><VehicleImagePreview imageId={journey.vehicleImageId} name={journey.vehicleImageName} alt={t("start.imagePreviewAlt")} /></details>}
 
       <details className="active-timeline"><summary>{t("journeys.timeline")}</summary><ol className="timeline">{journey.events.map((item) => <li key={item.id}><span /><div><strong>{t(`status.${item.type}` as Parameters<typeof t>[0])}</strong><small>{formatTime(item.timestamp, state.user.locale)}</small></div></li>)}</ol></details>
     </Card>

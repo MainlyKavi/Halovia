@@ -1,7 +1,7 @@
 {
-  "name": "Halovia — Journey Safety Prototype",
+  "name": "Halovia — Journey Safety",
   "short_name": "Halovia",
-  "description": "An installable journey-safety prototype with local demo data and safety check-in previews.",
+  "description": "An installable journey-safety web app with on-device journey planning and safety check-in previews.",
   "start_url": "/launch",
   "scope": "/",
   "display": "standalone",

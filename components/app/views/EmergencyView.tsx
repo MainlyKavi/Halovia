@@ -36,7 +36,7 @@ export function EmergencyView() {
     }
     if (selectedAction === "location") {
       const summary = state.activeJourney
-        ? `${t("common.prototype")}: ${state.activeJourney.origin} → ${state.activeJourney.destination}. ${t("emergency.noLiveCoordinates")}`
+        ? `Halovia: ${state.activeJourney.origin} → ${state.activeJourney.destination}. ${t("emergency.noLiveCoordinates")}`
         : t("emergency.noSavedJourney");
       try { await navigator.clipboard.writeText(summary); showToast(t("emergency.locationCopied")); }
       catch { showToast(t("emergency.copyFailed")); }

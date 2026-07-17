@@ -86,7 +86,6 @@ export function SafetyCheckModal() {
   return createPortal(<div className="safety-screen" role="presentation">
     <div ref={panelRef} className="safety-panel" role="dialog" aria-modal="true" aria-labelledby="safety-title" aria-describedby="safety-description">
       <div className={`countdown-ring ${alerted ? "alerted" : ""}`} style={{ "--countdown": `${ratio}` } as React.CSSProperties}><span role="timer" aria-label={t("safety.secondsRemaining", { seconds })}>{alerted ? <AlertTriangle size={31} /> : seconds}</span></div>
-      <span className="demo-pill">{t("common.prototype")}</span>
       <h1 id="safety-title">{t("safety.title")}</h1>
       <p id="safety-description">{alerted ? t("safety.alerted") : t("safety.text")}</p>
       {!alerted && <strong className="countdown-label">{t("safety.countdown", { seconds })}</strong>}

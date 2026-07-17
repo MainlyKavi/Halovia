@@ -6,11 +6,17 @@ import { translations, type TranslationKey } from "@/lib/i18n/translations";
 import {
   applyHistoryRetention,
   calculateJourneyProgress,
+  completeJourneyTransition,
   createId,
+  escalateSafetyCheckTransition,
+  extendSafetyCheckTransition,
   LEGACY_STORAGE_KEY,
   normalizeAppState,
+  recordSafeCheckInTransition,
+  requestHelpTransition,
   STORAGE_KEY,
 } from "@/lib/state/app-state";
+import { clearVehicleImages, pruneVehicleImages } from "@/lib/storage/vehicle-images";
 import type {
   AppState,
   HistoryRetention,
@@ -49,7 +55,7 @@ interface AppContextValue {
   clearToast: () => void;
   beginCleanSetup: () => void;
   loadDemo: () => void;
-  resetState: () => void;
+  resetState: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -97,6 +103,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [ready, state]);
 
   const activeJourneyId = state.activeJourney?.id;
+  const retainedImageIds = useMemo(
+    () => [state.activeJourney, ...state.history].flatMap((journey) => journey?.vehicleImageId ? [journey.vehicleImageId] : []),
+    [state.activeJourney, state.history],
+  );
+
+  useEffect(() => {
+    if (!ready) return;
+    pruneVehicleImages(retainedImageIds).catch(() => undefined);
+  }, [ready, retainedImageIds]);
 
   useEffect(() => {
     if (!ready || !activeJourneyId) return;
@@ -142,42 +157,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const clearToast = useCallback(() => setToast(null), []);
 
   const completeJourney = useCallback((status: "arrivedSafely" | "endedManually") => {
-    setState((current) => {
-      if (!current.activeJourney) return current;
-      const now = new Date();
-      const ended: Journey = {
-        ...current.activeJourney,
-        status,
-        progress: status === "arrivedSafely" ? 100 : calculateJourneyProgress(current.activeJourney, now.getTime()),
-        endedAt: now.toISOString(),
-        durationMinutes: Math.max(0, Math.round((now.getTime() - new Date(current.activeJourney.startedAt).getTime()) / 60_000)),
-        emergencyState: "none",
-        events: [...current.activeJourney.events, event(status, now.toISOString())],
-      };
-      const history = current.privacy.historyRetention === "auto"
-        ? current.history.filter((journey) => journey.id !== ended.id)
-        : [ended, ...current.history.filter((journey) => journey.id !== ended.id)];
-      return { ...current, activeJourney: null, safetyCheck: null, history };
-    });
+    setState((current) => completeJourneyTransition(current, status));
   }, []);
 
   const recordSafeCheckIn = useCallback(() => {
-    setState((current) => {
-      if (!current.activeJourney) return { ...current, safetyCheck: null };
-      const timestamp = new Date().toISOString();
-      return {
-        ...current,
-        safetyCheck: null,
-        activeJourney: {
-          ...current.activeJourney,
-          status: "safeCheckIn",
-          lastCheckInAt: timestamp,
-          emergencyState: "none",
-          safetyCheckOccurred: current.activeJourney.safetyCheckOccurred || Boolean(current.safetyCheck),
-          events: [...current.activeJourney.events, event("safeCheckIn", timestamp)],
-        },
-      };
-    });
+    setState((current) => recordSafeCheckInTransition(current));
   }, []);
 
   const triggerSafetyCheck = useCallback((reason: SafetyCheckReason) => {
@@ -208,54 +192,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const extendSafetyCheck = useCallback(() => {
-    setState((current) => {
-      if (!current.safetyCheck || current.safetyCheck.extensionUsed || current.safetyCheck.escalated || !current.activeJourney) return current;
-      const now = new Date();
-      const deadline = Math.max(now.getTime(), new Date(current.safetyCheck.deadlineAt).getTime()) + 120_000;
-      return {
-        ...current,
-        safetyCheck: { ...current.safetyCheck, deadlineAt: new Date(deadline).toISOString(), extensionUsed: true },
-        activeJourney: {
-          ...current.activeJourney,
-          events: [...current.activeJourney.events, event("safetyCheckExtended", now.toISOString())],
-        },
-      };
-    });
+    setState((current) => extendSafetyCheckTransition(current));
   }, []);
 
   const requestHelp = useCallback(() => {
-    setState((current) => {
-      if (!current.activeJourney) return { ...current, safetyCheck: null };
-      const timestamp = new Date().toISOString();
-      return {
-        ...current,
-        safetyCheck: null,
-        activeJourney: {
-          ...current.activeJourney,
-          status: "helpRequested",
-          emergencyState: "helpRequested",
-          events: [...current.activeJourney.events, event("helpRequested", timestamp)],
-        },
-      };
-    });
+    setState((current) => requestHelpTransition(current));
   }, []);
 
   const triggerPrototypeEscalation = useCallback(() => {
-    setState((current) => {
-      if (!current.activeJourney || !current.safetyCheck || current.safetyCheck.escalated) return current;
-      const timestamp = new Date().toISOString();
-      return {
-        ...current,
-        safetyCheck: { ...current.safetyCheck, escalated: true },
-        activeJourney: {
-          ...current.activeJourney,
-          status: "prototypeEscalated",
-          emergencyState: "prototypeEscalated",
-          prototypeEscalationTriggered: true,
-          events: [...current.activeJourney.events, event("prototypeEscalated", timestamp)],
-        },
-      };
-    });
+    setState((current) => escalateSafetyCheckTransition(current));
   }, []);
 
   const clearSafetyCheck = useCallback(() => setState((current) => ({ ...current, safetyCheck: null })), []);
@@ -332,9 +277,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }), []);
 
-  const resetState = useCallback(() => {
+  const resetState = useCallback(async () => {
     window.localStorage.removeItem(STORAGE_KEY);
     window.localStorage.removeItem(LEGACY_STORAGE_KEY);
+    Object.keys(window.sessionStorage).filter((key) => key.startsWith("halovia.")).forEach((key) => window.sessionStorage.removeItem(key));
+    await clearVehicleImages().catch(() => undefined);
+    if ("caches" in window) {
+      const keys = await caches.keys().catch(() => []);
+      await Promise.all(keys.filter((key) => key.startsWith("halovia-")).map((key) => caches.delete(key))).catch(() => undefined);
+    }
     setState(createEmptyState());
   }, []);
 

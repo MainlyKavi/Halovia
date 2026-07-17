@@ -1,4 +1,4 @@
-const CACHE_VERSION = "halovia-v4";
+const CACHE_VERSION = "halovia-v5";
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const ASSET_CACHE = `${CACHE_VERSION}-assets`;
 const CORE_PAGES = ["/", "/offline", "/manifest.webmanifest"];

@@ -22,8 +22,8 @@ export function SettingsView() {
     showToast(t("settings.saved"));
   }
 
-  function clearData() {
-    resetState();
+  async function clearData() {
+    await resetState();
     setClearOpen(false);
     router.push("/");
   }
@@ -45,6 +45,6 @@ export function SettingsView() {
       <Card className="settings-card"><h2><Database size={20} />{t("settings.data")}</h2><p className="field-hint">{t("settings.storageDisclosure")}</p><Button variant="danger" onClick={() => setClearOpen(true)}><Trash2 size={17} />{t("settings.clearData")}</Button></Card>
       <Card className="settings-card about-card"><h2><Info size={20} />{t("settings.about")}</h2><p>{t("settings.aboutText")}</p><small>{t("settings.version")}</small><p className="about-disclaimer">{t("disclaimer")}</p></Card>
     </div>
-    <Dialog open={clearOpen} onClose={() => setClearOpen(false)} title={t("settings.clearTitle")} description={t("settings.clearText")}><div className="dialog-actions"><Button variant="ghost" onClick={() => setClearOpen(false)}>{t("common.cancel")}</Button><Button variant="danger" onClick={clearData}>{t("settings.clearData")}</Button></div></Dialog>
+    <Dialog open={clearOpen} onClose={() => setClearOpen(false)} title={t("settings.clearTitle")} description={t("settings.clearText")}><div className="dialog-actions"><Button variant="ghost" onClick={() => setClearOpen(false)}>{t("common.cancel")}</Button><Button variant="danger" onClick={() => void clearData()}>{t("settings.clearData")}</Button></div></Dialog>
   </div>;
 }

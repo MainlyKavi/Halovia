@@ -5,17 +5,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { Camera, CarFront, Check, ChevronLeft, ChevronRight, Clock3, FileImage, MapPin, Navigation, ShieldCheck, Trash2, UsersRound } from "lucide-react";
 import { useApp } from "@/components/app/AppProvider";
-import { Avatar, Button, Card, EmptyState, Field, SelectInput, TextArea, TextInput } from "@/components/ui/Primitives";
+import { selectableTravelTypes, TransportIcon } from "@/components/app/TransportIcon";
+import { Avatar, Button, Card, EmptyState, Field, TextArea, TextInput } from "@/components/ui/Primitives";
 import { toDateTimeLocalValue } from "@/lib/i18n/format";
-import { createId } from "@/lib/state/app-state";
+import { createDefaultEta, createId } from "@/lib/state/app-state";
+import { saveVehicleImage, validateVehicleImage } from "@/lib/storage/vehicle-images";
 import type { Journey, TravelType } from "@/lib/types";
-
-const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 interface LocalImagePreview {
   name: string;
   url: string;
+  file: File;
 }
 
 export function StartJourneyView() {
@@ -27,16 +27,21 @@ export function StartJourneyView() {
   const [form, setForm] = useState(() => ({
     origin: "",
     destination: "",
-    eta: toDateTimeLocalValue(new Date(Date.now() + 40 * 60_000)),
+    eta: toDateTimeLocalValue(new Date(createDefaultEta())),
     travelType: "cab" as TravelType,
     vehicleNumber: "",
     driverName: "",
+    vehicleDescription: "",
     note: "",
     contactIds: state.contacts.filter((contact) => contact.active && contact.defaultForJourneys).map((contact) => contact.id),
   }));
   const titles = [t("start.stepRoute"), t("start.stepDetails"), t("start.stepPeople")];
 
   useEffect(() => () => { if (image) URL.revokeObjectURL(image.url); }, [image]);
+
+  if (state.activeJourney && !confirmed) {
+    return <div className="view-stack narrow-view"><EmptyState icon={<Navigation size={26} />} title={t("start.activeJourneyTitle")} text={t("start.activeJourneyText")} action={<Link href="/active" className="button button-primary button-md">{t("start.activeJourneyAction")}</Link>} /></div>;
+  }
 
   function next() {
     setError("");
@@ -51,10 +56,11 @@ export function StartJourneyView() {
   function selectImage(file: File | undefined) {
     setError("");
     if (!file) return;
-    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) { setError(t("start.imageTypeError")); return; }
-    if (file.size > MAX_IMAGE_BYTES) { setError(t("start.imageSizeError")); return; }
+    const validationError = validateVehicleImage(file);
+    if (validationError === "type") { setError(t("start.imageTypeError")); return; }
+    if (validationError === "size") { setError(t("start.imageSizeError")); return; }
     if (image) URL.revokeObjectURL(image.url);
-    setImage({ name: file.name, url: URL.createObjectURL(file) });
+    setImage({ name: file.name, url: URL.createObjectURL(file), file });
   }
 
   function removeImage() {
@@ -62,13 +68,21 @@ export function StartJourneyView() {
     setImage(null);
   }
 
-  function start() {
+  async function start() {
     setError("");
     const now = new Date();
     const eta = new Date(form.eta);
     if (!Number.isFinite(eta.getTime()) || eta.getTime() <= now.getTime()) { setStep(0); setError(t("start.etaFuture")); return; }
     const journeyId = createId("journey");
     const timestamp = now.toISOString();
+    if (image) {
+      try {
+        await saveVehicleImage(journeyId, image.file);
+      } catch {
+        setError(t("start.imageStorageError"));
+        return;
+      }
+    }
     const journey: Journey = {
       id: journeyId,
       origin: form.origin.trim(),
@@ -84,7 +98,9 @@ export function StartJourneyView() {
       progress: 0,
       vehicleNumber: form.vehicleNumber.trim() || undefined,
       driverName: form.driverName.trim() || undefined,
+      vehicleDescription: form.vehicleDescription.trim() || undefined,
       note: form.note.trim() || undefined,
+      vehicleImageId: image ? journeyId : undefined,
       vehicleImageName: image?.name,
       lastLocationUpdateAt: timestamp,
       connectionStatus: "online",
@@ -109,12 +125,12 @@ export function StartJourneyView() {
         <Field label={t("start.currentLocation")} hint={t("start.currentHint")}><div className="input-icon-wrap"><MapPin size={18} /><TextInput value={form.origin} onChange={(event) => setForm({ ...form, origin: event.target.value })} placeholder={t("start.currentPlaceholder")} /></div></Field>
         <Field label={t("start.destination")}><div className="input-icon-wrap"><Navigation size={18} /><TextInput value={form.destination} onChange={(event) => setForm({ ...form, destination: event.target.value })} placeholder={t("start.destinationPlaceholder")} /></div></Field>
         <Field label={t("start.eta")} hint={t("start.etaHint")}><div className="input-icon-wrap"><Clock3 size={18} /><TextInput type="datetime-local" value={form.eta} min={toDateTimeLocalValue(new Date())} onChange={(event) => setForm({ ...form, eta: event.target.value })} /></div></Field>
-        <Field label={t("start.travelType")}><SelectInput value={form.travelType} onChange={(event) => setForm({ ...form, travelType: event.target.value as TravelType })}>{(["cab", "walking", "publicTransport", "driving", "other"] as TravelType[]).map((type) => <option key={type} value={type}>{t(`travel.${type}` as Parameters<typeof t>[0])}</option>)}</SelectInput></Field>
+        <fieldset className="field transport-fieldset"><legend className="field-label">{t("start.travelType")}</legend><div className="transport-grid">{selectableTravelTypes.map((type) => { const selected = form.travelType === type; return <button key={type} type="button" className={selected ? "selected" : ""} aria-pressed={selected} onClick={() => setForm({ ...form, travelType: type })}><span className="transport-icon"><TransportIcon type={type} size={22} /></span><span>{t(`travel.${type}` as Parameters<typeof t>[0])}</span>{selected && <Check className="transport-check" size={16} />}</button>; })}</div></fieldset>
       </div>}
-      {step === 1 && <div className="details-step"><div className="section-inline-heading"><span className="feature-icon"><CarFront size={22} /></span><div><h2>{t("start.vehicleTitle")} <small>{t("common.optional")}</small></h2><p>{t("start.vehicleText")}</p></div></div><div className="form-grid two-col"><Field label={t("start.vehicleNumber")}><TextInput value={form.vehicleNumber} onChange={(event) => setForm({ ...form, vehicleNumber: event.target.value })} /></Field><Field label={t("start.driverName")}><TextInput value={form.driverName} onChange={(event) => setForm({ ...form, driverName: event.target.value })} /></Field></div><Field label={t("start.note")}><TextArea rows={3} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder={t("start.notePlaceholder")} /></Field>{image ? <div className="image-preview-card"><Image unoptimized width={640} height={360} src={image.url} alt={t("start.imagePreviewAlt")} /><div><FileImage size={22} /><span><strong>{image.name}</strong><small>{t("start.imageSessionOnly")}</small></span></div><div><label className="button button-secondary button-sm"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectImage(event.target.files?.[0])} />{t("start.replaceImage")}</label><Button variant="ghost" size="sm" onClick={removeImage}><Trash2 size={17} />{t("common.remove")}</Button></div></div> : <label className="upload-card"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectImage(event.target.files?.[0])} /><span><Camera size={25} /></span><div><strong>{t("start.upload")}</strong><small>{t("start.imageRules")}</small></div></label>}<p className="field-hint">{t("start.noOcr")}</p></div>}
+      {step === 1 && <div className="details-step"><div className="section-inline-heading"><span className="feature-icon"><CarFront size={22} /></span><div><h2>{t("start.vehicleTitle")} <small>{t("common.optional")}</small></h2><p>{t("start.vehicleText")}</p></div></div><div className="form-grid two-col"><Field label={t("start.vehicleNumber")}><TextInput value={form.vehicleNumber} onChange={(event) => setForm({ ...form, vehicleNumber: event.target.value })} /></Field><Field label={t("start.driverName")}><TextInput value={form.driverName} onChange={(event) => setForm({ ...form, driverName: event.target.value })} /></Field></div><Field label={t("start.vehicleDescription")}><TextInput value={form.vehicleDescription} onChange={(event) => setForm({ ...form, vehicleDescription: event.target.value })} placeholder={t("start.vehicleDescriptionPlaceholder")} /></Field><Field label={t("start.note")}><TextArea rows={3} value={form.note} onChange={(event) => setForm({ ...form, note: event.target.value })} placeholder={t("start.notePlaceholder")} /></Field>{image ? <div className="image-preview-card"><Image unoptimized width={640} height={360} src={image.url} alt={t("start.imagePreviewAlt")} /><div><FileImage size={22} /><span><strong>{image.name}</strong><small>{t("start.imageStoredLocally")}</small></span></div><div><label className="button button-secondary button-sm"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectImage(event.target.files?.[0])} />{t("start.replaceImage")}</label><Button variant="ghost" size="sm" onClick={removeImage}><Trash2 size={17} />{t("common.remove")}</Button></div></div> : <label className="upload-card"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => selectImage(event.target.files?.[0])} /><span><Camera size={25} /></span><div><strong>{t("start.upload")}</strong><small>{t("start.imageRules")}</small></div></label>}<p className="field-hint">{t("start.imageLocalDisclosure")}</p><p className="field-hint">{t("start.noOcr")}</p></div>}
       {step === 2 && <div className="people-step"><div className="section-inline-heading"><span className="feature-icon"><UsersRound size={22} /></span><div><h2>{t("start.selectContacts")}</h2><p>{t("start.privacy")}</p></div></div>{state.contacts.filter((contact) => contact.active).length === 0 ? <EmptyState icon={<UsersRound size={26} />} title={t("circle.emptyTitle")} text={t("start.noContactsWarning")} action={<Link href="/circle" className="button button-secondary button-md">{t("circle.add")}</Link>} /> : <div className="select-contact-list">{state.contacts.filter((contact) => contact.active).map((contact) => { const checked = form.contactIds.includes(contact.id); return <label key={contact.id} className={checked ? "checked" : ""}><input type="checkbox" checked={checked} onChange={(event) => setForm({ ...form, contactIds: event.target.checked ? [...form.contactIds, contact.id] : form.contactIds.filter((id) => id !== contact.id) })} /><Avatar initials={contact.initials} color={contact.color} /><span><strong>{contact.name}</strong><small>{contact.relationship || t("circle.relationshipUnknown")}</small></span><span className="round-check">{checked && <Check size={15} />}</span></label>; })}</div>}{form.contactIds.length === 0 && <p className="form-warning">{t("start.noContactsWarning")}</p>}</div>}
       {error && <p className="form-error" role="alert">{error}</p>}
-      <div className="setup-actions">{step > 0 ? <Button variant="ghost" onClick={() => { setStep((current) => current - 1); setError(""); }}><ChevronLeft size={18} />{t("common.back")}</Button> : <Link href="/home" className="button button-ghost button-md">{t("common.cancel")}</Link>}{step < 2 ? <Button size="lg" onClick={next}>{t("common.continue")}<ChevronRight size={18} /></Button> : <Button size="lg" onClick={start}><ShieldCheck size={19} />{t("start.final")}</Button>}</div>
+      <div className="setup-actions">{step > 0 ? <Button variant="ghost" onClick={() => { setStep((current) => current - 1); setError(""); }}><ChevronLeft size={18} />{t("common.back")}</Button> : <Link href="/home" className="button button-ghost button-md">{t("common.cancel")}</Link>}{step < 2 ? <Button size="lg" onClick={next}>{t("common.continue")}<ChevronRight size={18} /></Button> : <Button size="lg" onClick={() => void start()}><ShieldCheck size={19} />{t("start.final")}</Button>}</div>
     </Card>
   </div>;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, ArrowRight, BellRing, Check, Clock3, Globe2, LockKeyhole, MapPin, MonitorSmartphone, Navigation, PhoneCall, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
+import { AlertTriangle, ArrowRight, BellRing, Check, Globe2, LockKeyhole, MapPin, MonitorSmartphone, Navigation, PhoneCall, ShieldCheck, Sparkles, UsersRound } from "lucide-react";
 import { useApp } from "@/components/app/AppProvider";
 import { Avatar, Button, Card, CompactLanguageSwitcher, Progress } from "@/components/ui/Primitives";
 import { Logo } from "@/components/ui/Logo";
@@ -70,7 +70,7 @@ export function LandingPage() {
               <div className="preview-viewers"><span className="mini-avatar-stack"><Avatar initials="D1" color="#7c6ee6" size="sm" /><Avatar initials="D2" color="#ce6685" size="sm" /></span><span>{t("landing.demoContacts")}</span><Check size={16} /></div>
               <Button size="lg" className="preview-safe" onClick={exploreDemo}><ShieldCheck size={19} />{t("landing.exploreDemo")}</Button>
             </Card>
-            <div className="floating-card floating-status"><span className="pulse-dot" /><div><small>{t("status.onRoute")}</small><strong>{t("common.prototype")}</strong></div></div>
+            <div className="floating-card floating-status"><span className="pulse-dot" /><div><small>{t("status.onRoute")}</small><strong>{t("landing.demoDestination")}</strong></div></div>
             <div className="floating-card floating-privacy"><LockKeyhole size={18} /><span>{t("landing.localFirst")}</span></div>
           </div>
         </section>
@@ -85,14 +85,14 @@ export function LandingPage() {
             <div className="logic-comparison">
               <Card className="logic-card traditional"><h3>{t("landing.traditionalTitle")}</h3><div className="logic-timeline"><span /><span /><span /></div><ul><li>{t("landing.traditional1")}</li><li>{t("landing.traditional2")}</li><li>{t("landing.traditional3")}</li></ul></Card>
               <div className="comparison-arrow" aria-hidden="true"><ArrowRight size={24} /></div>
-              <Card className="logic-card halovia"><span className="demo-pill">{t("landing.intendedBehaviour")}</span><h3>{t("landing.haloviaApproachTitle")}</h3><div className="logic-timeline calm"><span /><span /><span /></div><ul><li>{t("landing.halovia1")}</li><li>{t("landing.halovia2")}</li><li>{t("landing.halovia3")}</li></ul></Card>
+              <Card className="logic-card halovia"><h3>{t("landing.haloviaApproachTitle")}</h3><div className="logic-timeline calm"><span /><span /><span /></div><ul><li>{t("landing.halovia1")}</li><li>{t("landing.halovia2")}</li><li>{t("landing.halovia3")}</li></ul></Card>
             </div>
           </div>
         </section>
 
         <section className="section shell-width">
           <div className="section-heading"><span className="eyebrow">03 · {t("landing.emergencyTitle")}</span><h2>{t("landing.emergencyHeading")}</h2><p>{t("landing.emergencyIntro")}</p></div>
-          <div className="three-grid">{emergencyFeatures.map(({ icon: Icon, title, text }) => <Card key={title} className="feature-card"><span className="feature-icon"><Icon size={22} /></span><h3>{title}</h3><p>{text}</p><span className="simulation-label">{t("landing.prototypeAction")}</span></Card>)}</div>
+          <div className="three-grid">{emergencyFeatures.map(({ icon: Icon, title, text }) => <Card key={title} className="feature-card"><span className="feature-icon"><Icon size={22} /></span><h3>{title}</h3><p>{text}</p></Card>)}</div>
           <div className="safety-limit-banner"><AlertTriangle size={21} /><p>{t("landing.notEmergencyReplacement")}</p><Link href="/safety-limitations">{t("footer.safety")}</Link></div>
         </section>
 
@@ -108,7 +108,7 @@ export function LandingPage() {
 
         <section id="faq" className="section section-tint"><div className="shell-width faq-shell"><div className="section-heading"><span className="eyebrow">05 · FAQ</span><h2>{t("landing.faqTitle")}</h2><p>{t("landing.faqText")}</p></div><div className="faq-list">{faqIds.map((id) => <details key={id}><summary><span>{t(`faq.${id}.question` as Parameters<typeof t>[0])}</span><span className="faq-plus" aria-hidden="true">+</span></summary><div><p>{t(`faq.${id}.answer` as Parameters<typeof t>[0])}</p></div></details>)}</div></div></section>
 
-        <section className="validation-section shell-width"><div><span className="eyebrow"><Clock3 size={15} />{t("landing.earlyPrototype")}</span><h2>{t("landing.feedbackTitle")}</h2><p>{t("landing.feedbackText")}</p></div><Link href="/feedback" className="button button-primary button-lg">{t("landing.shareFeedback")}<ArrowRight size={18} /></Link></section>
+        <section className="validation-section shell-width"><div><h2>{t("landing.feedbackTitle")}</h2><p>{t("landing.feedbackText")}</p></div><Link href="/feedback" className="button button-primary button-lg">{t("landing.shareFeedback")}<ArrowRight size={18} /></Link></section>
 
         <section className="final-cta shell-width"><div><span className="eyebrow"><ShieldCheck size={15} />Halovia</span><h2>{t("landing.ctaTitle")}</h2><p>{t("landing.ctaText")}</p></div><Button size="lg" onClick={startSetup}>{t("landing.setup")}<ArrowRight size={18} /></Button></section>
       </main>

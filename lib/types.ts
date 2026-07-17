@@ -49,7 +49,7 @@ export type JourneyEventType =
   | "connectionLost"
   | "emergencyActionPreview";
 
-export type TravelType = "cab" | "walking" | "publicTransport" | "driving" | "other";
+export type TravelType = "cab" | "autoRickshaw" | "motorcycle" | "walking" | "publicTransport" | "other";
 export type ConnectionStatus = "online" | "offline";
 export type EmergencyState = "none" | "helpRequested" | "prototypeEscalated";
 
@@ -76,7 +76,9 @@ export interface Journey {
   progress: number;
   vehicleNumber?: string;
   driverName?: string;
+  vehicleDescription?: string;
   note?: string;
+  vehicleImageId?: string;
   vehicleImageName?: string;
   lastCheckInAt?: string;
   lastLocationUpdateAt: string;

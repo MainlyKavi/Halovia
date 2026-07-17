@@ -40,7 +40,6 @@ export function AppShell({ route, children }: { route: string; children: React.R
         <div className="sidebar-spacer" />
         {state.mode === "demo" && <button type="button" className="sidebar-exit-demo" onClick={exitDemo}><LogOut size={18} /><span>{t("demo.exit")}</span></button>}
         <Link href="/emergency" className="sidebar-emergency"><ShieldAlert size={20} /><span>{t("nav.emergency")}</span></Link>
-        <p className="sidebar-disclaimer"><AlertTriangle size={14} />{t("disclaimer")}</p>
       </aside>
 
       <main className="app-main">
@@ -50,7 +49,6 @@ export function AppShell({ route, children }: { route: string; children: React.R
           <div className="mobile-header-actions"><CompactLanguageSwitcher /><Link href="/emergency" className="header-emergency" aria-label={t("nav.emergency")}><ShieldAlert size={20} /></Link></div>
         </header>
         <div className="view-container">{children}</div>
-        <p className="mobile-disclaimer">{t("disclaimer")}</p>
       </main>
 
       <nav className="bottom-nav" aria-label={t("landing.navigationLabel")}>
