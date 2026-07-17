@@ -81,17 +81,10 @@ export default defineConfig(async () => {
       plugins: [
         directStylesheetsInDevelopment(),
         vinext(),
-        nitro({
-          preset: "vercel",
-          vercel: {
-            functions: {
-              runtime: "nodejs22.x",
-            },
-          },
-          output: {
-            dir: ".output",
-          },
-        }),
+        // Nitro detects Vercel automatically and writes the deployment
+        // output to `.output`. Keep this minimal to avoid unsupported or
+        // version-specific configuration.
+        nitro(),
       ],
     };
   }
