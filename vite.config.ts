@@ -2,6 +2,7 @@ import vinext from "vinext";
 import { nitro } from "nitro/vite";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
+import type { Plugin } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
 
@@ -13,6 +14,27 @@ const { d1, r2 } = hostingConfig;
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const isVercel = process.env.VERCEL === "1";
+
+// vinext currently emits stylesheet links without Vite's `?direct` query in
+// development. Vite otherwise serves those requests as JS modules, leaving the
+// page unstyled. Rewrite only real stylesheet requests; production builds are
+// unaffected because this plugin applies to the dev server only.
+function directStylesheetsInDevelopment(): Plugin {
+  return {
+    name: "halovia:direct-dev-stylesheets",
+    apply: "serve",
+    enforce: "pre",
+    configureServer(server) {
+      server.middlewares.use((request, _response, next) => {
+        const acceptsCss = request.headers.accept?.includes("text/css");
+        if (acceptsCss && request.url && /\.css(?:$|\?)/.test(request.url) && !request.url.includes("direct")) {
+          request.url += request.url.includes("?") ? "&direct" : "?direct";
+        }
+        next();
+      });
+    },
+  };
+}
 
 const localBindingConfig = {
   main: "./worker/index.ts",
@@ -57,10 +79,12 @@ export default defineConfig(async () => {
         ? { watch: { useFsEvents: false, usePolling: true } }
         : undefined,
       plugins: [
+        directStylesheetsInDevelopment(),
         vinext(),
-        nitro({
-          preset: "vercel",
-        }),
+        // Nitro detects Vercel automatically and writes the deployment
+        // output to `.output`. Keep this minimal to avoid unsupported or
+        // version-specific configuration.
+        nitro(),
       ],
     };
   }
@@ -73,6 +97,7 @@ export default defineConfig(async () => {
       ? { watch: { useFsEvents: false, usePolling: true } }
       : undefined,
     plugins: [
+      directStylesheetsInDevelopment(),
       vinext(),
       sites(),
       cloudflare({
