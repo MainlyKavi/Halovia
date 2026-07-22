@@ -31,6 +31,15 @@ export function formatNumber(value: number, locale: Locale, options?: Intl.Numbe
   return new Intl.NumberFormat(locale, options).format(value);
 }
 
+export function formatDistance(metres: number, locale: Locale): string {
+  const useKilometres = Math.abs(metres) >= 1_000;
+  return formatNumber(useKilometres ? metres / 1_000 : metres, locale, {
+    style: "unit",
+    unit: useKilometres ? "kilometer" : "meter",
+    maximumFractionDigits: useKilometres ? 1 : 0,
+  });
+}
+
 export function formatDuration(
   minutes: number,
   locale: Locale,

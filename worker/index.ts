@@ -1,26 +1,8 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
-
-interface AssetFetcher {
-  fetch(request: Request): Promise<Response>;
-}
-
-interface Env {
-  ASSETS: AssetFetcher;
-  IMAGES: {
-    input(stream: ReadableStream): {
-      transform(options: Record<string, unknown>): {
-        output(options: { format: string; quality: number }): Promise<{ response(): Response }>;
-      };
-    };
-  };
-}
-
-interface ExecutionContext {
-  waitUntil(promise: Promise<unknown>): void;
-  passThroughOnException(): void;
-}
+import { handleApi, runRetentionCleanup } from "./api";
+import type { Env, ExecutionContext, ScheduledController } from "./runtime-types";
 
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
@@ -31,6 +13,8 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    if (url.pathname.startsWith("/api/")) return handleApi(request, env);
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
@@ -43,7 +27,33 @@ const worker = {
       }, allowedWidths);
     }
 
-    return handler.fetch(request, env, ctx);
+    const response = await handler.fetch(request, env, ctx);
+    const headers = new Headers(response.headers);
+    headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+    headers.set("X-Content-Type-Options", "nosniff");
+    headers.set("X-Frame-Options", "DENY");
+    headers.set("Permissions-Policy", "geolocation=(self), camera=(self), microphone=(), payment=(), usb=()");
+    if (url.pathname.startsWith("/viewer/")) {
+      headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
+    }
+    headers.set("Content-Security-Policy", [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' blob:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "img-src 'self' data: blob: https://tiles.openfreemap.org",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "connect-src 'self' https://tiles.openfreemap.org https://routing.openstreetmap.de",
+      "worker-src 'self' blob:",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; "));
+    return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
+  },
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext) {
+    void controller;
+    ctx.waitUntil(runRetentionCleanup(env));
   },
 };
 

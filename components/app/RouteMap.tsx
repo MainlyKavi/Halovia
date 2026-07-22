@@ -1,22 +1,21 @@
 "use client";
 
-import { MapPin, Navigation } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { useApp } from "@/components/app/AppProvider";
+import { JourneyMap } from "@/components/app/JourneyMap";
+import type { Journey } from "@/lib/types";
 
-export function RouteMap({ compact = false, progress = 58 }: { compact?: boolean; progress?: number }) {
+export function RouteMap({ compact = false, journey }: { compact?: boolean; journey: Journey }) {
   const { t } = useApp();
-  return (
-    <div className={`mock-map ${compact ? "mock-map-compact" : ""}`} aria-label={t("active.route")}>
-      <div className="map-grid" />
-      <span className="map-road road-a" /><span className="map-road road-b" /><span className="map-road road-c" />
-      <div className="route-css" aria-hidden="true">
-        <span className={`route-segment segment-a ${progress >= 18 ? "reached" : ""}`} />
-        <span className={`route-segment segment-b ${progress >= 42 ? "reached" : ""}`} />
-        <span className={`route-segment segment-c ${progress >= 72 ? "reached" : ""}`} />
-      </div>
-      <span className="map-marker marker-start"><span><Navigation size={14} /></span><small>{t("active.current")}</small></span>
-      <span className="map-marker marker-end"><span><MapPin size={16} /></span><small>{t("active.destination")}</small></span>
-      <span className="map-car" style={{ left: `${Math.max(22, Math.min(76, progress))}%` }}><Navigation size={15} /></span>
-    </div>
-  );
+  if (!journey.originCoordinate || !journey.destinationCoordinate) {
+    return <div className={`production-map map-unavailable ${compact ? "compact" : ""}`}><MapPin size={24} /><p>{journey.isDemo ? t("common.demoData") : t("map.routeUnavailable")}</p></div>;
+  }
+  return <JourneyMap
+    compact={compact}
+    origin={journey.originCoordinate}
+    destination={journey.destinationCoordinate}
+    latest={journey.latestCoordinate ?? null}
+    travelType={journey.travelType}
+    stale={journey.connectionStatus === "offline" || Boolean(journey.endedAt)}
+  />;
 }
