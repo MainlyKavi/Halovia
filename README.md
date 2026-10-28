@@ -2,44 +2,138 @@
 
 **Protection that travels with you.**
 
-Halovia is a mobile-first journey-safety prototype that lets users create journeys, choose trusted contacts, respond to safety check-ins, and access emergency actions from a simple interface.
+Halovia is a women's safety prototype for cab journeys. This repository holds two apps that share one `lib/`:
 
-> Halovia is currently a prototype. It does not provide real live tracking, send alerts, contact emergency services, or sync data between devices.
+| App | Folder | What it is |
+| --- | --- | --- |
+| **Android ride-safety prototype** | `mobile/`, `android/` | Installable Capacitor APK for live demos: trusted group, mock ride booking, "Share with Halovia", live tracking, route-deviation alerts, SOS, nearby police and hospitals, and a contact view. Runs fully on the phone with no backend. |
+| Web app | `app/`, `components/`, `worker/` | The original Next.js (vinext) PWA with journey setup, check-ins and a Cloudflare Worker backend. Unchanged by the Android work. |
 
-## Features
+> Halovia is a prototype. It does not contact emergency services, does not send real SMS or push messages, and must not be relied on in a real emergency.
 
-- Journey setup with destination, ETA, transport, and vehicle details
-- Trusted contact management
-- Simulated live journey and safety check-ins
-- Emergency-action interface
-- English, Hindi, and Spanish
-- Pink, light, and dark themes
-- Local browser storage
-- Basic PWA and offline shell
+## What is real and what is simulated (Android prototype)
 
-## Tech Stack
+| Feature | Status |
+| --- | --- |
+| Trusted group (add, edit, delete, per-ride selection) | **Real**, stored on the device (`localStorage`) |
+| Route between pickup and drop | **Real** OSRM route from `routing.openstreetmap.de`; a baked-in copy is used offline |
+| Map tiles | **Real** OpenStreetMap data via OpenFreeMap (no API key); falls back to a plain background offline |
+| Nearby police stations and hospitals | **Real** OpenStreetMap data via the Overpass API, cached for 24 h; a baked-in list is used offline |
+| Your GPS dot | **Real** device location (Capacitor Geolocation) when permission is granted |
+| Deviation detection | **Real** point-to-polyline math (`lib/ride/deviation.ts`, unit tested); in demo mode it watches the simulated cab |
+| Vibration, system notifications, status bar colour | **Real** Capacitor Haptics, Local Notifications and Status Bar |
+| Siren and alert sound | **Real**, generated with the Web Audio API (turn the media volume up) |
+| Ride booking (driver, plate, fare) | **Simulated**: `MockRideProvider`. Halovia has no access to Rapido, Ola or Uber. Brand names are text labels only |
+| Cab movement | **Simulated**: the cab drives along the real route at a demo speed; "Simulate wrong turn" sends it off route |
+| Alerts reaching trusted contacts | **Simulated**: alerts go to the in-app contact view over `BroadcastChannel`/`localStorage` (also works across two browser tabs). The system notification on the same phone stands in for the contact's push |
+| SOS calls to police or contacts | **Simulated in demo mode**: buttons show "this would call 112" and dial nothing. With demo mode off, they open the phone dialer (`tel:`) and the user still has to press call |
 
-- Next.js
-- React
-- TypeScript
-- Vite
-- Vinext
-- Nitro
+Simulated code is marked in comments (`DEMO ONLY`, `DEMO STAND-IN FOR A BACKEND`, `MockRideProvider`), and the Settings screen shows "SOS simulated in demo mode".
 
-## Run Locally
+## How it is built
+
+The web app is server-rendered (vinext RSC, auth headers, a Worker backend), so a static export would have meant ripping out its auth and backend. Instead, `vite.mobile.config.ts` builds a separate single-page app from `mobile/` into `dist-mobile/`. That app reuses `lib/`, the theme tokens and primitives from `app/globals.css` and `components/ui`, and `maplibre-gl`. Capacitor 7 then wraps `dist-mobile/` into the Android project in `android/`.
+
+```
+lib/ride/            Domain logic with unit tests (no React)
+  geo.ts             Haversine, point-to-polyline distance, walking a polyline
+  deviation.ts       Off-route detector (threshold + grace period)
+  simulation.ts      DEMO ONLY simulated cab and wrong turn
+  ride-provider.ts   RideProvider interface + MockRideProvider (Rapido/Ola/Uber labels)
+  route.ts           OSRM route fetch with offline fallback
+  places.ts          Overpass police/hospital lookup, cache, offline fallback
+  alerts.ts          SOS and deviation alert builders, SMS-style text
+  group.ts           Trusted group helpers
+  strings.ts         EN / HI / ES strings for the mobile app
+mobile/              React UI, Capacitor plugin wrappers, siren, sync bus
+android/             Capacitor Android project (debug APK)
+```
+
+## Run in a browser (fastest way to try it)
+
+Requires Node 22.
 
 ```bash
-git clone https://github.com/MainlyKavi/Halovia.git
-cd Halovia
+npm install
+npm run mobile:dev
+```
+
+Open http://localhost:5174 with your browser's device toolbar set to a phone size. To see the contact side live in a second tab, open http://localhost:5174/?view=contact.
+
+## Build the Android APK
+
+One-time setup:
+
+1. Install JDK 21 (for example Temurin 21) and set `JAVA_HOME` to it.
+2. Install the Android SDK (Android Studio, or the command-line tools) with `platform-tools`, `platforms;android-35` and `build-tools;35.0.0`.
+3. Create `android/local.properties` pointing at the SDK, for example:
+   ```properties
+   sdk.dir=C:/Users/<you>/AppData/Local/Android/Sdk
+   ```
+
+Build (Windows):
+
+```bash
+npm run android:sync
+cd android && gradlew.bat assembleDebug
+```
+
+On macOS or Linux, use `./gradlew assembleDebug`. The APK is written to `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+### Install on your phone
+
+1. On the phone: Settings → About phone → tap **Build number** 7 times, then Settings → Developer options → enable **USB debugging**.
+2. Connect it over USB and accept the "Allow USB debugging" prompt.
+3. Install:
+   ```bash
+   adb devices
+   adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+   ```
+   (`adb` is in `<sdk>/platform-tools`.) You can also copy the APK to the phone and open it, after allowing installs from that source.
+
+### Run in an emulator
+
+The emulator needs hardware virtualization (Intel VT-x / AMD-V enabled in BIOS, plus Windows Hypervisor Platform or the Android Emulator hypervisor driver).
+
+```bash
+sdkmanager "system-images;android-35;google_apis;x86_64" "emulator"
+avdmanager create avd -n halovia_demo -k "system-images;android-35;google_apis;x86_64" -d pixel_7
+emulator -avd halovia_demo
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Or run `npm run android:run`, which syncs and launches on a connected device or emulator.
+
+## Demo
+
+See [DEMO_SCRIPT.md](DEMO_SCRIPT.md) for a 3-minute walkthrough. In the app, the **Demo script** screen (Home → "Open demo script") has a button for each step.
+
+## Checks
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+```
+
+## Web app (original)
+
+```bash
 npm install
 npm run dev
 ```
 
-## Important Limitations
+The web app uses a Cloudflare Worker backend with D1/R2 (`worker/`, `db/`, `drizzle/`) and expects an authenticated user. See `.env.example` for the local development identity.
 
-The current version uses simulated routes and alerts. User, contact, journey, and preference data is stored only in the browser using `localStorage`.
+## Future work
 
-Halovia should not be relied on during a real emergency.
+- **Real ride-app partnerships.** Implement `RideProvider` against Rapido, Ola or Uber partner APIs or deep-link callbacks, so ride details arrive without retyping. This needs their permission and API access.
+- **Push notifications.** Firebase Cloud Messaging (or APNs on iOS) so trusted contacts get alerts on their own phones, including when the app is closed.
+- **Backend and real-time sync.** Replace the `BroadcastChannel` stand-in in `mobile/sync.ts` with a real channel. The existing `worker/` + D1 backend already has share sessions; a small SSE endpoint or Supabase Realtime (free tier) would carry the same `SharedSnapshot`.
+- **Background location.** A foreground service so tracking and deviation checks continue with the screen off.
+- **SMS fallback.** Send `formatAlertText()` over SMS when there is no data connection, with explicit consent and carrier costs explained.
+- **Police and emergency integration.** Work with ERSS-112 (India) or local emergency services on a verified hand-off, instead of only showing the nearest station.
+- **Real deviation input.** Use the driver's real position (shared by the ride app) rather than the passenger's phone, and re-route instead of flagging when traffic forces a legitimate detour.
 
 ## Author
 

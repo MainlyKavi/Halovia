@@ -153,7 +153,7 @@ export function SafetyProvider({ role, children }: { role: "rider" | "contact"; 
   const [members, setMembers] = useState<GroupMember[]>(() => read(MEMBERS_KEY, isMembers) ?? DEMO_MEMBERS);
   const [session, setSession] = useState<Session>(() => read(SESSION_KEY, isSession) ?? emptySession(null));
   const sessionRef = useRef(session);
-  const [screen, setScreen] = useState<Screen>(role === "contact" ? "contact" : "home");
+  const [screen, setScreen] = useState<Screen>(() => (role === "contact" ? "contact" : (window.history.state as { screen?: Screen } | null)?.screen ?? "home"));
   const [shareSheetOpen, setShareSheetOpen] = useState(false);
   const [gps, setGps] = useState<GpsFix | null>(null);
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle");
@@ -371,7 +371,23 @@ export function SafetyProvider({ role, children }: { role: "rider" | "contact"; 
     setScreen("home");
   }, [mutate]);
 
-  const navigate = useCallback((next: Screen) => { setScreen(next); window.scrollTo({ top: 0, behavior: "instant" }); }, []);
+  // Screens live in browser history so the Android back button (which Capacitor
+  // maps to WebView history) steps back through the app instead of closing it.
+  const navigate = useCallback((next: Screen) => {
+    setScreen(next);
+    if ((window.history.state as { screen?: Screen } | null)?.screen !== next) window.history.pushState({ screen: next }, "");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, []);
+  useEffect(() => {
+    const home: Screen = role === "contact" ? "contact" : "home";
+    if (!(window.history.state as { screen?: Screen } | null)?.screen) window.history.replaceState({ screen: home }, "");
+    const onPop = (event: PopStateEvent) => {
+      setShareSheetOpen(false);
+      setScreen((event.state as { screen?: Screen } | null)?.screen ?? home);
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [role]);
 
   const value = useMemo<SafetyContextValue>(() => ({
     role, settings, updateSettings, members, saveMember, deleteMember, t, locale, screen, navigate, shareSheetOpen, setShareSheetOpen,

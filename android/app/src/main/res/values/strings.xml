@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Halovia</string>
+    <string name="title_activity_main">Halovia</string>
+    <string name="package_name">app.halovia.prototype</string>
+    <string name="custom_url_scheme">app.halovia.prototype</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Halovia mark (from public/icons/icon.svg) in the pink theme, for the adaptive launcher icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <group android:translateX="6.9" android:translateY="8.0" android:scaleX="0.184" android:scaleY="0.184">
+        <path android:pathData="M256,102a148,148 0,1 1,-0.1,0z" android:strokeColor="#FFFFFF" android:strokeWidth="28" android:fillColor="#00000000"/>
+        <path android:pathData="M256,144a106,106 0,1 1,-0.1,0z" android:fillColor="#D97F9A"/>
+        <path android:pathData="M174,284c36,45 82,7 117,-31 30,-33 54,-24 68,-8" android:strokeColor="#FFFFFF" android:strokeWidth="25" android:strokeLineCap="round" android:fillColor="#00000000"/>
+        <path android:pathData="M365,217c-31,0 -52,21 -52,50 0,39 52,91 52,91s52,-52 52,-91c0,-29 -21,-50 -52,-50Z" android:fillColor="#FFFFFF"/>
+        <path android:pathData="M365,251a16,16 0,1 1,-0.1,0z" android:fillColor="#CE6685"/>
+    </group>
+</vector>
