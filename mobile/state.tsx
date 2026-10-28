@@ -13,7 +13,7 @@ import { publishSnapshot, readSnapshot, subscribeSnapshot, clearSnapshot, type S
 
 export type Theme = "pink" | "light" | "dark";
 export type Speed = "realistic" | "fast" | "veryFast";
-export type Screen = "home" | "ride" | "group" | "settings" | "booked" | "script" | "contact";
+export type Screen = "home" | "emergency" | "ride" | "group" | "settings" | "booked" | "script" | "contact";
 
 /** Simulated cab speed in metres per second. "Realistic" is ~40 km/h city traffic. */
 export const SPEEDS: Record<Speed, number> = { realistic: 11, fast: 45, veryFast: 110 };
@@ -65,8 +65,8 @@ function providerFor(brand: RideBrand): RideProvider {
 }
 
 const defaultSettings = (): Settings => ({
-  version: 1, userName: "Ananya", theme: "pink", language: "en", demoMode: true,
-  deviationMetres: DEFAULT_DEVIATION_CONFIG.thresholdMetres, speed: "fast", brand: "rapido", onboarded: false, contactViewerId: DEMO_MEMBERS[1].id,
+  version: 1, userName: "Shreya", theme: "pink", language: "en", demoMode: true,
+  deviationMetres: DEFAULT_DEVIATION_CONFIG.thresholdMetres, speed: "fast", brand: "rapido", onboarded: false, contactViewerId: "member-kavi",
 });
 
 const emptySession = (ride: RideDetails | null): Session => ({

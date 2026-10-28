@@ -1,4 +1,4 @@
-import { CarFront, Eye, Home, Settings as SettingsIcon, UsersRound } from "lucide-react";
+import { Eye, Home, MapPinned, Phone, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { playSound, stopSound, unlockAudio } from "./audio";
 import { DeviationBanner, SosOverlay, ToastHost } from "./components/Overlays";
@@ -6,6 +6,7 @@ import { ShareSheet } from "./components/ShareSheet";
 import { vibrate } from "./native";
 import { BookedScreen } from "./screens/BookedScreen";
 import { ContactScreen } from "./screens/ContactScreen";
+import { EmergencyScreen } from "./screens/EmergencyScreen";
 import { GroupScreen } from "./screens/GroupScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { PermissionScreen } from "./screens/PermissionScreen";
@@ -27,12 +28,22 @@ export function App() {
   return <SafetyProvider role={role}><Shell /></SafetyProvider>;
 }
 
-const tabs: Array<{ screen: Screen; key: "nav.home" | "nav.ride" | "nav.group" | "nav.settings"; icon: typeof Home }> = [
+const tabs: Array<{ screen: Screen; key: "nav.home" | "nav.emergency" | "nav.live" | "nav.settings"; icon: typeof Home }> = [
   { screen: "home", key: "nav.home", icon: Home },
-  { screen: "ride", key: "nav.ride", icon: CarFront },
-  { screen: "group", key: "nav.group", icon: UsersRound },
+  { screen: "emergency", key: "nav.emergency", icon: Phone },
+  { screen: "ride", key: "nav.live", icon: MapPinned },
   { screen: "settings", key: "nav.settings", icon: SettingsIcon },
 ];
+
+/** Four-point sparkle used as the Halovia mark in the app header. */
+function Sparkle() {
+  return (
+    <svg className="m-sparkle" viewBox="0 0 32 32" width="30" height="30" aria-hidden="true">
+      <path d="M16 1.5c.9 7.6 3.9 11.6 14.5 14.5C19.9 18.9 16.9 22.9 16 30.5 15.1 22.9 12.1 18.9 1.5 16 12.1 13.1 15.1 9.1 16 1.5Z" fill="currentColor" />
+      <circle cx="26" cy="6" r="1.6" fill="currentColor" opacity=".55" />
+    </svg>
+  );
+}
 
 function Shell() {
   const { screen, navigate, t, settings, session } = useSafety();
@@ -41,20 +52,20 @@ function Shell() {
   if (role === "rider" && !settings.onboarded) return <main className="m-app"><PermissionScreen /><ToastHost /></main>;
 
   const content = {
-    home: <HomeScreen />, ride: <TrackingScreen />, group: <GroupScreen />, settings: <SettingsScreen />,
+    home: <HomeScreen />, emergency: <EmergencyScreen />, ride: <TrackingScreen />, group: <GroupScreen />, settings: <SettingsScreen />,
     booked: <BookedScreen />, script: <ScriptScreen />, contact: <ContactScreen />,
   }[screen];
   const showTabs = role === "rider" && screen !== "contact";
-  const activeTab = screen === "booked" ? "ride" : screen === "script" ? "home" : screen;
+  const activeTab = screen === "booked" ? "ride" : screen === "script" || screen === "group" ? "home" : screen;
 
   return (
     <main className={`m-app ${showTabs ? "with-tabs" : ""}`}>
       {screen !== "contact" && (
         <header className="m-header">
-          <span className="brand-lockup"><span className="logo-mark" aria-hidden="true"><span className="logo-route" /><span className="logo-point" /></span><span className="brand-word">Halovia</span></span>
+          <button type="button" className="m-brand" onClick={() => navigate("home")} aria-label={t("nav.home")}><Sparkle /><span>Halovia</span></button>
           <div className="m-header-actions">
-            {settings.demoMode && <span className="m-demo-badge">{t("demo.badge")}</span>}
-            {settings.demoMode && <button type="button" className="m-contact-toggle" onClick={() => navigate("contact")} aria-label={t("demo.contactView")}><Eye size={17} /><span>{t("demo.contactViewShort")}</span></button>}
+            {settings.demoMode && <button type="button" className="m-contact-toggle" onClick={() => navigate("contact")} aria-label={t("demo.contactView")}><Eye size={16} /><span>{t("demo.badge")}</span></button>}
+            <button type="button" className="m-gear" onClick={() => navigate("settings")} aria-label={t("nav.settings")}><SettingsIcon size={26} strokeWidth={1.9} /></button>
           </div>
         </header>
       )}
@@ -64,7 +75,7 @@ function Shell() {
         <nav className="m-tabs" aria-label="Halovia">
           {tabs.map(({ screen: target, key, icon: Icon }) => (
             <button key={target} type="button" className={activeTab === target ? "active" : ""} aria-current={activeTab === target ? "page" : undefined} onClick={() => navigate(target)}>
-              <Icon size={21} /><span>{t(key)}</span>{target === "ride" && session.sharing && <i className="m-tab-live" aria-hidden="true" />}
+              <Icon size={24} strokeWidth={activeTab === target ? 2.3 : 1.8} fill={target === "home" && activeTab === target ? "currentColor" : "none"} /><span>{t(key)}</span>{target === "ride" && session.sharing && <i className="m-tab-live" aria-hidden="true" />}
             </button>
           ))}
         </nav>

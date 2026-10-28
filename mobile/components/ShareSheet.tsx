@@ -1,7 +1,7 @@
 import { Car, Check, LoaderCircle, MapPin, Route, UserRound } from "lucide-react";
 import { useState } from "react";
 import { Avatar } from "@/components/ui/Primitives";
-import { toggleSelection } from "@/lib/ride/group";
+import { defaultRecipients, toggleSelection } from "@/lib/ride/group";
 import { useSafety } from "../state";
 import { Sheet } from "./Sheet";
 
@@ -17,7 +17,7 @@ export function ShareSheet() {
 
 function ShareSheetBody() {
   const { members, t, startSharing, setShareSheetOpen, navigate, showToast } = useSafety();
-  const [selected, setSelected] = useState<string[]>(() => members.map((member) => member.id));
+  const [selected, setSelected] = useState<string[]>(() => defaultRecipients(members));
   const [busy, setBusy] = useState(false);
   const items = [
     { icon: MapPin, label: t("share.liveLocation") },

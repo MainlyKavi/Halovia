@@ -15,11 +15,11 @@ Each step below also has a **Run** button on the in-app **Demo script** screen (
 
 > "When a woman takes a cab alone, the people who care about her can't see where she is or know when something goes wrong. Halovia fixes that."
 
-Show the **Home** screen: the SOS button, the trusted group, and nearby help.
+Show the **Home** screen: "Connected with Rapido", the map, the HELP button, "Dad & Kavi can see this journey" and the emergency helplines.
 
 ### 0:15 — Trusted group (20 s)
 
-Tap **Group**. Three members are already set up (mother, best friend, brother).
+Tap the **Group** card on Home. Four people are already set up: Dad, Kavi, Niara and Milan.
 
 > "You choose who you trust. You can add, edit or remove people here."
 
@@ -27,7 +27,7 @@ Optionally tap **Add member** to show the form, then cancel.
 
 ### 0:35 — The booked ride (25 s)
 
-Tap **Home → Open booked ride**.
+Tap the **Connected with Rapido** chip on Home.
 
 > "This is the confirmation your cab app shows: driver, photo, car, number plate, fare. We can't integrate with Rapido, Ola or Uber without their APIs, so this is a mock behind a `RideProvider` interface. The real integration plugs in right here."
 
@@ -39,11 +39,11 @@ Tap **Share with Halovia**. The sheet shows exactly what is shared and with whom
 
 > "She picks who gets this ride. Live location, driver, plate and the full route."
 
-Tap **Start sharing with 3**.
+Dad and Kavi are pre-selected. Tap **Start sharing with 2**.
 
 ### 1:20 — Live tracking (20 s)
 
-The map shows the real road route, the cab moving, ETA, distance left, and **Sharing with 3 people**.
+The map shows the real road route, the cab moving, ETA, distance left, and **Sharing with 2 people**.
 
 > "The route comes from OpenStreetMap. The cab movement is simulated for the demo."
 
@@ -61,7 +61,7 @@ Tap **I'm OK**.
 
 ### 2:05 — SOS (25 s)
 
-Go to **Home**. **Press and hold** the SOS button for 2 seconds (or double-tap). Point out the progress ring and the **5-second cancel** countdown.
+Go to **Home**. **Press and hold** the HELP button for 2 seconds (or double-tap). Point out the fill bar and the **5-second cancel** countdown.
 
 When it fires: full red screen, siren, strong vibration. It shows who was alerted and the nearest police station and hospital.
 
@@ -71,7 +71,7 @@ When it fires: full red screen, siren, strong vibration. It shows who was alerte
 
 On the SOS screen, tap **Demo: switch to contact view** (or look at the second screen).
 
-> "This is Priya's phone." The alarm plays, and she sees the SOS card with the number plate, the nearest police and hospital, and buttons to **Call Ananya**, **Call police 100/112** and **Open in Maps**.
+> "This is Kavi's phone." The alarm plays, and the SOS card shows with the number plate, the nearest police and hospital, and buttons to **Call Shreya**, **Call police 100/112** and **Open in Maps**.
 
 Scroll to show the live map and the alert history, including the earlier route alert. Tap **Acknowledge**.
 

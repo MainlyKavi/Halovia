@@ -5,6 +5,8 @@ export interface GroupMember {
   relation: string;
   initials: string;
   color: string;
+  /** Pre-selected when a new ride is shared. */
+  shareByDefault?: boolean;
 }
 
 export const MEMBER_COLORS = ["#ce6685", "#6f63d9", "#23866d", "#b66c27", "#3d7fb8"] as const;
@@ -27,7 +29,7 @@ export function validateMember(input: Pick<GroupMember, "name" | "phone">): Memb
 }
 
 export function upsertMember(members: readonly GroupMember[], member: GroupMember): GroupMember[] {
-  const normalized = { ...member, name: member.name.trim(), phone: member.phone.trim(), relation: member.relation.trim(), initials: initialsFor(member.name) };
+  const normalized: GroupMember = { ...member, name: member.name.trim(), phone: member.phone.trim(), relation: member.relation.trim(), initials: initialsFor(member.name) };
   return members.some((item) => item.id === member.id)
     ? members.map((item) => (item.id === member.id ? normalized : item))
     : [...members, normalized];
@@ -47,8 +49,31 @@ export function toggleSelection(selection: readonly string[], id: string): strin
   return selection.includes(id) ? selection.filter((item) => item !== id) : [...selection, id];
 }
 
+/** Ids of the members a new share starts with: the default ones, or everyone if none are marked. */
+export function defaultRecipients(members: readonly GroupMember[]): string[] {
+  const marked = members.filter((member) => member.shareByDefault);
+  return (marked.length ? marked : members).map((member) => member.id);
+}
+
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/u)[0] ?? "";
+}
+
+/**
+ * Short list of who is following a journey: "Dad", "Dad & Kavi", or
+ * "Dad, Kavi +2" when more than two people are viewing. Templates come from
+ * the translated strings so the joiner can be localized.
+ */
+export function summarizeViewers(names: readonly string[], templates: { pair: string; more: string }): string {
+  const first = names.map(firstName).filter(Boolean);
+  if (first.length <= 1) return first[0] ?? "";
+  if (first.length === 2) return templates.pair.replace("{a}", first[0]).replace("{b}", first[1]);
+  return templates.more.replace("{a}", first[0]).replace("{b}", first[1]).replace("{count}", String(first.length - 2));
+}
+
 export const DEMO_MEMBERS: GroupMember[] = [
-  { id: "member-amma", name: "Lakshmi Iyer", phone: "+91 90000 00001", relation: "Mother", initials: "LI", color: MEMBER_COLORS[0] },
-  { id: "member-priya", name: "Priya Sharma", phone: "+91 90000 00002", relation: "Best friend", initials: "PS", color: MEMBER_COLORS[1] },
-  { id: "member-arjun", name: "Arjun Iyer", phone: "+91 90000 00003", relation: "Brother", initials: "AI", color: MEMBER_COLORS[2] },
+  { id: "member-dad", name: "Dad", phone: "+91 90000 00001", relation: "Father", initials: "DA", color: MEMBER_COLORS[0], shareByDefault: true },
+  { id: "member-kavi", name: "Kavi Goutam", phone: "+91 90000 00002", relation: "Brother", initials: "KG", color: MEMBER_COLORS[1], shareByDefault: true },
+  { id: "member-niara", name: "Niara", phone: "+91 90000 00003", relation: "Best friend", initials: "NI", color: MEMBER_COLORS[2] },
+  { id: "member-milan", name: "Milan", phone: "+91 90000 00004", relation: "Cousin", initials: "MI", color: MEMBER_COLORS[3] },
 ];

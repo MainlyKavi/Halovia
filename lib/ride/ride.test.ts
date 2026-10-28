@@ -4,7 +4,7 @@ import { buildDeviationAlert, buildSosAlert, directionsLink, formatAlertText, fo
 import { DEFAULT_DEVIATION_CONFIG, evaluateDeviation, INITIAL_DEVIATION_STATE, type DeviationState } from "./deviation.ts";
 import { FALLBACK_ROUTE, FALLBACK_ROUTE_DISTANCE_METRES } from "./fallback-route.ts";
 import { destinationPoint, distanceToPolylineMetres, haversineMetres, pointAlongPolyline, polylineLengthMetres, projectOntoPolyline, slicePolyline, type LatLng } from "./geo.ts";
-import { DEMO_MEMBERS, initialsFor, reconcileSelection, removeMember, toggleSelection, upsertMember, validateMember } from "./group.ts";
+import { DEMO_MEMBERS, defaultRecipients, initialsFor, summarizeViewers, reconcileSelection, removeMember, toggleSelection, upsertMember, validateMember } from "./group.ts";
 import { buildOverpassQuery, FALLBACK_SAFETY_PLACES, fetchSafetyPlaces, nearestSafetyPlaces, parseOverpassResponse, placesCacheKey, type KeyValueStore } from "./places.ts";
 import { createMockRide, MockRideProvider } from "./ride-provider.ts";
 import { FALLBACK_PLANNED_ROUTE, fetchPlannedRoute, parseOsrmResponse } from "./route.ts";
@@ -165,17 +165,28 @@ test("trusted group helpers validate, upsert and keep selections in sync", () =>
   assert.deepEqual(validateMember({ name: "A", phone: "call me" }), ["phoneInvalid"]);
 
   const added = upsertMember(DEMO_MEMBERS, { id: "new", name: " Meera Rao ", phone: "+91 90000 00009", relation: "Aunt", initials: "", color: "#000" });
-  assert.equal(added.length, 4);
-  assert.equal(added[3].name, "Meera Rao");
-  assert.equal(added[3].initials, "MR");
-  const edited = upsertMember(added, { ...added[3], name: "Meera R" });
-  assert.equal(edited.length, 4);
-  assert.equal(edited[3].name, "Meera R");
+  assert.equal(added.length, 5);
+  assert.equal(added[4].name, "Meera Rao");
+  assert.equal(added[4].initials, "MR");
+  const edited = upsertMember(added, { ...added[4], name: "Meera R" });
+  assert.equal(edited.length, 5);
+  assert.equal(edited[4].name, "Meera R");
 
-  const selection = toggleSelection(toggleSelection([], "new"), "member-priya");
-  assert.deepEqual(selection, ["new", "member-priya"]);
-  assert.deepEqual(toggleSelection(selection, "new"), ["member-priya"]);
-  assert.deepEqual(reconcileSelection(selection, removeMember(edited, "new")), ["member-priya"]);
+  const selection = toggleSelection(toggleSelection([], "new"), "member-niara");
+  assert.deepEqual(selection, ["new", "member-niara"]);
+  assert.deepEqual(toggleSelection(selection, "new"), ["member-niara"]);
+  assert.deepEqual(reconcileSelection(selection, removeMember(edited, "new")), ["member-niara"]);
+});
+
+test("viewer summary and default recipients match the demo group", () => {
+  const templates = { pair: "{a} & {b}", more: "{a}, {b} +{count}" };
+  assert.equal(summarizeViewers([], templates), "");
+  assert.equal(summarizeViewers(["Dad"], templates), "Dad");
+  assert.equal(summarizeViewers(["Dad", "Kavi Goutam"], templates), "Dad & Kavi");
+  assert.equal(summarizeViewers(DEMO_MEMBERS.map((member) => member.name), templates), "Dad, Kavi +2");
+  assert.deepEqual(defaultRecipients(DEMO_MEMBERS), ["member-dad", "member-kavi"]);
+  assert.deepEqual(defaultRecipients(DEMO_MEMBERS.map((member) => ({ ...member, shareByDefault: false }))), DEMO_MEMBERS.map((member) => member.id));
+  assert.equal(initialsFor("Kavi Goutam"), "KG");
 });
 
 test("Overpass parsing keeps named police and hospitals with coordinates", () => {
@@ -279,13 +290,13 @@ test("alerts include location link, ride, plate and nearest help", () => {
   const ride = createMockRide("rapido", 0);
   const location = FALLBACK_ROUTE[40];
   const nearest = nearestSafetyPlaces(FALLBACK_SAFETY_PLACES, location);
-  const sos = buildSosAlert({ id: "a1", userName: "Ananya", location, ride, nearest, recipientIds: ["m1"], now: 0 });
+  const sos = buildSosAlert({ id: "a1", userName: "Shreya", location, ride, nearest, recipientIds: ["m1"], now: 0 });
   assert.equal(sos.kind, "sos");
   assert.equal(sos.simulated, true);
   assert.equal(sos.ride?.plate, ride.vehicle.plate);
   assert.equal(sos.locationLink, locationLink(location));
   const text = formatAlertText(sos);
-  for (const expected of ["SOS: Ananya needs help.", ride.vehicle.plate, "Nearest police:", "Nearest hospital:", "openstreetmap.org"]) assert.ok(text.includes(expected), expected);
+  for (const expected of ["SOS: Shreya needs help.", ride.vehicle.plate, "Nearest police:", "Nearest hospital:", "openstreetmap.org"]) assert.ok(text.includes(expected), expected);
 
   const deviation = buildDeviationAlert({ id: "a2", userName: " ", location, ride: null, nearest, recipientIds: [], distanceOffRouteMetres: 412.4 });
   assert.equal(deviation.userName, "Halovia user");

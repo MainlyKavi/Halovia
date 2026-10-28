@@ -1,4 +1,5 @@
 import { ArrowLeft, Play } from "lucide-react";
+import { defaultRecipients } from "@/lib/ride/group";
 import type { RideStringKey } from "@/lib/ride/strings";
 import { useSafety } from "../state";
 
@@ -13,7 +14,7 @@ export function ScriptScreen() {
 
   const steps: Step[] = [
     { title: "script.step1", text: "script.step1Text", run: () => navigate("booked"), disabled: !session.ride },
-    { title: "script.step2", text: "script.step2Text", run: () => { void startSharing(members.map((member) => member.id)).then(() => navigate("ride")); }, disabled: !session.ride || !members.length },
+    { title: "script.step2", text: "script.step2Text", run: () => { void startSharing(defaultRecipients(members)).then(() => navigate("ride")); }, disabled: !session.ride || !members.length },
     { title: "script.step3", text: "script.step3Text", run: () => { if (!riding) return needsRide(); simulateWrongTurn(); navigate("ride"); } },
     { title: "script.step4", text: "script.step4Text", run: () => { triggerSos(); navigate("home"); }, disabled: session.sos.phase !== "idle" },
     { title: "script.step5", text: "script.step5Text", run: () => navigate("contact") },
