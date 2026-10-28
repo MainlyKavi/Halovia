@@ -27,6 +27,7 @@ const en = {
 
   "demo.badge": "Demo mode",
   "demo.contactView": "Demo: switch to contact view",
+  "demo.contactViewShort": "Contact view",
   "demo.riderView": "Back to my view",
 
   "perm.title": "Before your first ride",
@@ -155,6 +156,7 @@ const en = {
   "places.none": "Nothing found nearby",
 
   "contact.viewingAs": "Viewing as {name}",
+  "contact.viewAs": "View as",
   "contact.rideOf": "{name}'s ride",
   "contact.waiting": "Nothing shared right now",
   "contact.waitingText": "When {name} shares a ride with you, it will appear here.",
@@ -248,6 +250,7 @@ const hi: RideDictionary = {
 
   "demo.badge": "डेमो मोड",
   "demo.contactView": "डेमो: संपर्क का दृश्य देखें",
+  "demo.contactViewShort": "संपर्क दृश्य",
   "demo.riderView": "मेरे दृश्य पर लौटें",
 
   "perm.title": "पहली राइड से पहले",
@@ -376,6 +379,7 @@ const hi: RideDictionary = {
   "places.none": "पास में कुछ नहीं मिला",
 
   "contact.viewingAs": "{name} के रूप में देख रहे हैं",
+  "contact.viewAs": "इस रूप में देखें",
   "contact.rideOf": "{name} की राइड",
   "contact.waiting": "अभी कुछ साझा नहीं",
   "contact.waitingText": "जब {name} आपके साथ राइड साझा करेंगी, वह यहाँ दिखेगी।",
@@ -466,6 +470,7 @@ const es: RideDictionary = {
 
   "demo.badge": "Modo demo",
   "demo.contactView": "Demo: ver como contacto",
+  "demo.contactViewShort": "Vista contacto",
   "demo.riderView": "Volver a mi vista",
 
   "perm.title": "Antes de tu primer viaje",
@@ -594,6 +599,7 @@ const es: RideDictionary = {
   "places.none": "No se encontró nada cerca",
 
   "contact.viewingAs": "Viendo como {name}",
+  "contact.viewAs": "Ver como",
   "contact.rideOf": "Viaje de {name}",
   "contact.waiting": "Nada compartido ahora",
   "contact.waitingText": "Cuando {name} comparta un viaje contigo, aparecerá aquí.",

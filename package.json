@@ -9,9 +9,14 @@
     "dev": "vinext dev",
     "build": "vite build",
     "start": "vinext start",
-    "lint": "eslint . --ignore-pattern dist --ignore-pattern .next --ignore-pattern .output",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern dist-mobile --ignore-pattern android --ignore-pattern .next --ignore-pattern .output",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types lib/test.ts"
+    "test": "node --experimental-strip-types lib/test.ts",
+    "mobile:dev": "vite --config vite.mobile.config.ts",
+    "mobile:build": "vite build --config vite.mobile.config.ts",
+    "android:sync": "npm run mobile:build && cap sync android",
+    "android:apk": "npm run android:sync && cd android && gradlew.bat assembleDebug",
+    "android:run": "npm run android:sync && cap run android"
   },
   "dependencies": {
     "@capacitor/android": "^7.6.10",
