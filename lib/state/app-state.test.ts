@@ -112,7 +112,10 @@ test("new journey ETAs default to a valid 30 to 45 minute window", () => {
 test("legacy driving journeys migrate to the car or cab transport type", () => {
   const fallback = createEmptyState();
   const legacyJourney = { ...completedJourney("legacy-driving", 1), travelType: "driving" };
-  const normalized = normalizeAppState({ ...fallback, history: [legacyJourney] }, fallback);
+  // Keep history regardless of the wall clock; the 30-day default would
+  // otherwise drop this fixed-date fixture as time passes.
+  const privacy = { ...fallback.privacy, historyRetention: "manual" as const };
+  const normalized = normalizeAppState({ ...fallback, privacy, history: [legacyJourney] }, fallback);
   assert.equal(normalized.history[0]?.travelType, "cab");
 });
 

@@ -4,3 +4,5 @@ import "./storage/vehicle-images.test.ts";
 import "./pwa/service-worker.test.ts";
 import "./backend/validation.test.ts";
 import "./map-policy.test.ts";
+import "./ride/ride.test.ts";
+import "./ride/strings.test.ts";
