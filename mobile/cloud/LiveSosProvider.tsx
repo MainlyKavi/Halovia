@@ -149,7 +149,8 @@ export function LiveSosProvider({ children }: { children: React.ReactNode }) {
   const uidRef = useRef(uid);
   useEffect(() => { uidRef.current = uid; }, [uid]);
   useEffect(() => {
-    if (!db || !uid || !native?.firebaseConfigured) return;
+    // After onboarding, so Android's notification prompt never covers it.
+    if (!db || !uid || !native?.firebaseConfigured || !settings.onboarded) return;
     return registerPush({
       onStatus: setPushStatus,
       onToken: (token) => { void saveFcmToken(db, uid, token).catch(() => undefined); },
@@ -159,7 +160,7 @@ export function LiveSosProvider({ children }: { children: React.ReactNode }) {
         if (data.type === "sos" && data.circleId && data.sosId && data.recipientUid === uidRef.current) markReceipt(db, data.circleId, data.sosId, uid, "deliveredTo", "");
       },
     });
-  }, [db, native?.firebaseConfigured, uid]);
+  }, [db, native?.firebaseConfigured, settings.onboarded, uid]);
 
   // Keep the name, phone and push flag the circle sees current.
   const me = members.find((member) => member.uid === uid);
@@ -197,6 +198,7 @@ export function LiveSosProvider({ children }: { children: React.ReactNode }) {
   // --- Outgoing SOS --------------------------------------------------------
   // Where "I am" for the SOS: in demo mode with a simulated ride that is the
   // cab (as everywhere else in the app); otherwise the freshest real GPS fix.
+  // Outside demo mode nothing but a real fix is ever sent.
   const sosFix = useRef<GpsFix | null>(null);
   const placeRef = useRef<{ demo: boolean; cab: LivePoint | null; gps: GpsFix | null; fallback: LivePoint }>({ demo: true, cab: null, gps: null, fallback: { ...location, accuracy: null, at: 0 } });
   useEffect(() => {
@@ -207,12 +209,12 @@ export function LiveSosProvider({ children }: { children: React.ReactNode }) {
       fallback: { ...location, accuracy: null, at: Date.now() },
     };
   }, [cab, gps, location, session.sharing, settings.demoMode]);
-  const currentPoint = useCallback((): LivePoint => {
+  const currentPoint = useCallback((): LivePoint | null => {
     const { demo, cab: cabPoint, gps: gpsFix, fallback } = placeRef.current;
     const fix = [sosFix.current, gpsFix].filter((item): item is GpsFix => Boolean(item && Date.now() - item.at < 120_000)).sort((a, b) => b.at - a.at)[0];
-    if (demo && cabPoint) return cabPoint;
+    if (demo && cabPoint) return { ...cabPoint, at: Date.now() };
     if (fix) return { ...fix.point, accuracy: fix.accuracy, at: fix.at };
-    return cabPoint ?? fallback;
+    return demo ? { ...fallback, at: Date.now() } : null;
   }, []);
 
   const sosPhase = session.sos.phase;
@@ -273,13 +275,14 @@ export function LiveSosProvider({ children }: { children: React.ReactNode }) {
       const now = Date.now();
       const point = currentPoint();
       const last = lastWrite.current;
-      if (now - last.at < LOCATION_EVERY_MS - 300) return;
+      if (!point || now - last.at < LOCATION_EVERY_MS - 300) return;
       const moved = !last.point || last.point.lat !== point.lat || last.point.lng !== point.lng;
       if (!moved && now - last.at < LOCATION_HEARTBEAT_MS) return;
-      const stamped = { ...point, at: now };
-      trailRef.current = appendTrail(trailRef.current, stamped);
+      // The point keeps its fix time, so the other phone's "updated Ns ago"
+      // shows a stalled GPS honestly instead of the time of the write.
+      trailRef.current = appendTrail(trailRef.current, point);
       lastWrite.current = { at: now, point };
-      updateSosLocation(db, cid, sosId, stamped, trailRef.current);
+      updateSosLocation(db, cid, sosId, point, trailRef.current);
       setLastLocationAt(now);
     };
     const stopWatch = watchSosLocation(
