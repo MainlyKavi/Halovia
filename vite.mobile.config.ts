@@ -12,6 +12,8 @@ export default defineConfig({
   root: `${root}mobile`,
   base: "./",
   publicDir: `${root}mobile/public`,
+  // .env.local (Firebase web config for browser testing) lives at the repo root.
+  envDir: root,
   resolve: { alias: { "@": root } },
   css: { postcss: { plugins: [tailwindcss({ base: root })] } },
   plugins: [react()],

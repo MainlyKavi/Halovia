@@ -15,6 +15,8 @@ import { ScriptScreen } from "./screens/ScriptScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { TrackingScreen } from "./screens/TrackingScreen";
 import { SafetyProvider, useSafety, type Screen } from "./state";
+import { IncomingSosAlert } from "./cloud/IncomingSosAlert";
+import { LiveSosProvider, useLiveSos } from "./cloud/LiveSosProvider";
 
 // Opening the app with ?view=contact (for example in a second browser tab)
 // starts it as a pure trusted-contact screen that only listens for updates.
@@ -26,7 +28,7 @@ export function App() {
     window.addEventListener("pointerdown", unlock, { passive: true });
     return () => window.removeEventListener("pointerdown", unlock);
   }, []);
-  return <SafetyProvider role={role}><Shell /></SafetyProvider>;
+  return <SafetyProvider role={role}><LiveSosProvider><Shell /></LiveSosProvider></SafetyProvider>;
 }
 
 const tabs: Array<{ screen: Screen; key: "nav.home" | "nav.emergency" | "nav.live" | "nav.settings"; icon: typeof Home }> = [
@@ -102,6 +104,7 @@ function Shell() {
       {!fullScreen && (
         <header className="m-header">
           <BrandButton />
+          {settings.demoMode && <span className="m-demo-pill" role="note">{t("demo.badge")}</span>}
         </header>
       )}
       {session.sharing && screen !== "contact" && <span className="sr-only" role="status">{t("home.activeRide")}</span>}
@@ -118,6 +121,7 @@ function Shell() {
       <DeviationBanner />
       <ShareSheet />
       {role === "rider" && screen !== "contact" && <SosOverlay />}
+      {role === "rider" && <IncomingSosAlert />}
       <ToastHost />
     </main>
   );
@@ -129,12 +133,15 @@ function Shell() {
  */
 function useAlertAudio() {
   const { screen, session, snapshot, settings } = useSafety();
+  const { incoming, acknowledged, uid } = useLiveSos();
+  // An SOS from another phone in the circle rings until acknowledged.
+  const liveAlarm = incoming.some((sos) => !acknowledged.includes(sos.id) && !(uid && sos.ackBy[uid]));
   const contactSide = screen === "contact";
   const viewerId = settings.contactViewerId ?? snapshot?.members[0]?.id ?? null;
   const sosId = snapshot?.sosActiveAlertId ?? null;
   const contactAlarm = contactSide && sosId !== null && !session.contactAcks.includes(sosId) && Boolean(snapshot?.alerts.find((alert) => alert.id === sosId)?.recipientIds.includes(viewerId ?? ""));
   const riderSiren = !contactSide && session.sos.phase === "active" && !session.sos.silenced;
-  const wanted = contactAlarm ? "alarm" : riderSiren ? "siren" : null;
+  const wanted = contactAlarm || liveAlarm ? "alarm" : riderSiren ? "siren" : null;
 
   useEffect(() => {
     if (!wanted) { stopSound(); return; }

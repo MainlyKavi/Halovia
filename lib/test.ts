@@ -6,3 +6,4 @@ import "./backend/validation.test.ts";
 import "./map-policy.test.ts";
 import "./ride/ride.test.ts";
 import "./ride/strings.test.ts";
+import "./ride/live-sos.test.ts";

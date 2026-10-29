@@ -4,6 +4,7 @@ import { useNow } from "../hooks";
 import { SOS_COUNTDOWN_MS, useSafety } from "../state";
 import { openExternal } from "../native";
 import { NearbyPlacesList } from "./NearbyPlaces";
+import { SosDeliveryStatus } from "../cloud/SosDeliveryStatus";
 
 export function SosOverlay() {
   const { session, t, members, settings, cancelSos, stopSos, silenceSiren, showToast, nearest, navigate } = useSafety();
@@ -37,6 +38,7 @@ export function SosOverlay() {
       <h2 id="sos-active-title">{t("sos.activeTitle")}</h2>
       <p>{t("sos.activeText")}</p>
       {names && <p className="m-sos-sent"><Check size={16} />{t("sos.sentTo", { names })}</p>}
+      <SosDeliveryStatus />
       {settings.demoMode && <p className="m-sos-demo">{t("sos.demoLabel")}</p>}
       <div className="m-sos-places"><NearbyPlacesList nearest={alert?.nearest ?? nearest} compact /></div>
       <div className="m-sos-actions">

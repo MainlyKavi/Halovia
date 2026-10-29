@@ -1,4 +1,5 @@
-import { Capacitor } from "@capacitor/core";
+import { Capacitor, registerPlugin } from "@capacitor/core";
+import type { BackgroundGeolocationPlugin } from "@capacitor-community/background-geolocation";
 import { Geolocation, type Position } from "@capacitor/geolocation";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
 import { LocalNotifications } from "@capacitor/local-notifications";
@@ -144,4 +145,69 @@ export async function styleStatusBar(theme: "pink" | "light" | "dark", sos: bool
 export function openExternal(url: string): void {
   if (isNative || url.startsWith("tel:") || url.startsWith("geo:")) window.location.href = url;
   else window.open(url, "_blank", "noopener,noreferrer");
+}
+
+/** Native side of the live SOS (android/.../HaloviaNativePlugin.java). */
+export interface NativeStatus {
+  /** google-services.json was bundled, so FCM push and the native Firebase app exist. */
+  firebaseConfigured: boolean;
+  firebase?: { apiKey: string; appId: string; projectId: string; senderId: string };
+  sdkInt: number;
+  notificationsEnabled: boolean;
+  canUseFullScreenIntent: boolean;
+  ignoringBatteryOptimizations: boolean;
+  backgroundLocation: boolean;
+}
+
+interface HaloviaNativePlugin {
+  status(): Promise<NativeStatus>;
+  openBatterySettings(): Promise<void>;
+  openFullScreenIntentSettings(): Promise<void>;
+  openAppSettings(): Promise<void>;
+  /** On: show over the lock screen and turn the screen on. Off: also clears SOS notifications. */
+  setAlertMode(options: { on: boolean }): Promise<void>;
+}
+
+const HaloviaNative = registerPlugin<HaloviaNativePlugin>("HaloviaNative");
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>("BackgroundGeolocation");
+
+export async function nativeStatus(): Promise<NativeStatus | null> {
+  if (Capacitor.getPlatform() !== "android") return null;
+  try { return await HaloviaNative.status(); } catch { return null; }
+}
+
+export type NativeSettingsPage = "battery" | "fullScreen" | "app";
+
+export async function openNativeSettings(page: NativeSettingsPage): Promise<void> {
+  try {
+    if (page === "battery") await HaloviaNative.openBatterySettings();
+    else if (page === "fullScreen") await HaloviaNative.openFullScreenIntentSettings();
+    else await HaloviaNative.openAppSettings();
+  } catch { /* Settings screens differ between Android skins; nothing to do. */ }
+}
+
+export async function setAlertMode(on: boolean): Promise<void> {
+  if (Capacitor.getPlatform() !== "android") return;
+  try { await HaloviaNative.setAlertMode({ on }); } catch { /* Older plugin build. */ }
+}
+
+/**
+ * Location for an active SOS. On Android this runs a foreground service
+ * (persistent notification) so fixes keep arriving with the screen locked;
+ * in a browser it falls back to watchPosition.
+ */
+export function watchSosLocation(text: { title: string; message: string }, onFix: (fix: GpsFix) => void, onError: (denied: boolean) => void): () => void {
+  if (!isNative) return watchGps(onFix, onError);
+  let stopped = false;
+  let id: string | null = null;
+  BackgroundGeolocation.addWatcher(
+    { backgroundTitle: text.title, backgroundMessage: text.message, requestPermissions: true, stale: false, distanceFilter: 0 },
+    (location, error) => {
+      if (stopped) return;
+      if (location) onFix({ point: { lat: location.latitude, lng: location.longitude }, accuracy: location.accuracy, at: location.time ?? Date.now() });
+      else if (error) onError(error.code === "NOT_AUTHORIZED");
+    },
+  ).then((watcherId) => { id = watcherId; if (stopped) void BackgroundGeolocation.removeWatcher({ id: watcherId }).catch(() => undefined); })
+    .catch(() => onError(false));
+  return () => { stopped = true; if (id) void BackgroundGeolocation.removeWatcher({ id }).catch(() => undefined); };
 }

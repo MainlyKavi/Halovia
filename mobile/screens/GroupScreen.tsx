@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Avatar } from "@/components/ui/Primitives";
 import type { GroupMember } from "@/lib/ride/group";
 import { MemberEditor } from "../components/MemberEditor";
+import { PairingCard } from "../cloud/PairingCard";
 import { Sheet } from "../components/Sheet";
 import { useSafety } from "../state";
 
@@ -17,6 +18,8 @@ export function GroupScreen() {
         <div><h1>{t("group.title")}</h1><p>{t("group.subtitle")}</p></div>
         <button type="button" className="button button-primary button-sm" onClick={() => setEditing("new")}><Plus size={18} />{t("group.add")}</button>
       </header>
+
+      <PairingCard />
 
       {members.length === 0 ? (
         <div className="empty-state m-empty">
