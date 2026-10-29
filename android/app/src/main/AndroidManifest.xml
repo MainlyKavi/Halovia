@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -24,6 +25,22 @@
 
         </activity>
 
+        <!-- Live SOS push: our service shows the full-screen alarm and still
+             forwards to the Capacitor push plugin, whose own service is removed. -->
+        <service
+            android:name=".HaloviaMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="halovia_sos_alarm" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -46,4 +63,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- SOS and alert vibration (@capacitor/haptics). -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Live SOS. Background location lets "Allow all the time" appear in
+         Settings; the SOS location itself runs in a foreground service
+         (@capacitor-community/background-geolocation adds its permissions). -->
+    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+    <!-- The incoming SOS alarm fills the screen on the lock screen. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- Opens the "allow Halovia to ignore battery optimisation" dialog. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 </manifest>
