@@ -42,6 +42,10 @@ function ackUrl(): string {
   return `https://${REGION}-${projectId()}.cloudfunctions.net/ackSosDelivery`;
 }
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([promise, new Promise<never>((_, reject) => setTimeout(() => reject(new Error(`FCM send timed out after ${ms} ms`)), ms))]);
+}
+
 /**
  * Data-only, high-priority messages: Android wakes the app's own
  * HaloviaMessagingService even when the app is closed or the phone is
@@ -53,7 +57,10 @@ async function sendToAll(recipients: Recipient[], data: Record<string, string>) 
     data: { ...data, recipientUid: uid },
     android: { priority: "high", ttl: 10 * 60 * 1_000 },
   }));
-  const response = await getMessaging().sendEach(messages);
+  // The emulator has no FCM credentials (the send would hang on them), and
+  // a stuck send must never stop the SOS from being marked as attempted.
+  if (process.env.FUNCTIONS_EMULATOR === "true") throw new Error("FCM is not available in the emulator");
+  const response = await withTimeout(getMessaging().sendEach(messages), 15_000);
   const failures: Record<string, string> = {};
   await Promise.all(response.responses.map(async (result, index) => {
     if (result.success) return;
