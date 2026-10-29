@@ -4,7 +4,8 @@ import { connectFirestoreEmulator, initializeFirestore, memoryLocalCache, persis
 import { nativeStatus } from "../native";
 
 // Firebase for the live SOS. Config comes from, in order:
-//   1. VITE_FIREBASE_* in .env.local (browser testing; never committed)
+//   1. VITE_FIREBASE_* in .env.local, dev server only (browser testing; never
+//      committed, and never baked into an APK)
 //   2. android/app/google-services.json, read back through the native plugin
 // With neither, the app runs exactly as before and live SOS shows "not set up".
 
@@ -15,6 +16,7 @@ export interface Cloud {
 }
 
 function envOptions(): FirebaseOptions | null {
+  if (!import.meta.env.DEV) return null;
   const env = import.meta.env;
   const apiKey = env.VITE_FIREBASE_API_KEY as string | undefined;
   const projectId = env.VITE_FIREBASE_PROJECT_ID as string | undefined;
@@ -42,7 +44,7 @@ export function getCloud(): Promise<Cloud | null> {
     // sends it when the connection returns, even after an app restart.
     let db: Firestore;
     try { db = initializeFirestore(app, { localCache: persistentLocalCache() }); } catch { db = initializeFirestore(app, { localCache: memoryLocalCache() }); }
-    const emulator = import.meta.env.VITE_FIREBASE_EMULATOR_HOST as string | undefined;
+    const emulator = import.meta.env.DEV ? (import.meta.env.VITE_FIREBASE_EMULATOR_HOST as string | undefined) : undefined;
     if (emulator) {
       connectAuthEmulator(auth, `http://${emulator}:9099`, { disableWarnings: true });
       connectFirestoreEmulator(db, emulator, 8080);

@@ -166,6 +166,7 @@ interface HaloviaNativePlugin {
   openAppSettings(): Promise<void>;
   /** On: show over the lock screen and turn the screen on. Off: also clears SOS notifications. */
   setAlertMode(options: { on: boolean }): Promise<void>;
+  addListener(event: "resumed", listener: () => void): Promise<{ remove: () => Promise<void> }>;
 }
 
 const HaloviaNative = registerPlugin<HaloviaNativePlugin>("HaloviaNative");
@@ -174,6 +175,13 @@ const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>("Backg
 export async function nativeStatus(): Promise<NativeStatus | null> {
   if (Capacitor.getPlatform() !== "android") return null;
   try { return await HaloviaNative.status(); } catch { return null; }
+}
+
+/** Called whenever the app returns to the foreground, e.g. from a settings page or dialog. */
+export function onNativeResume(listener: () => void): () => void {
+  if (Capacitor.getPlatform() !== "android") return () => undefined;
+  const handle = HaloviaNative.addListener("resumed", listener).catch(() => null);
+  return () => { void handle.then((value) => value?.remove()); };
 }
 
 export type NativeSettingsPage = "battery" | "fullScreen" | "app";

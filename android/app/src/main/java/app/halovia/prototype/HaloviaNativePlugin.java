@@ -95,6 +95,13 @@ public class HaloviaNativePlugin extends Plugin {
         call.resolve();
     }
 
+    /** Settings pages and dialogs pause the app; tell the web app to re-read status when it is back. */
+    @Override
+    protected void handleOnResume() {
+        super.handleOnResume();
+        notifyListeners("resumed", new JSObject());
+    }
+
     private Intent appDetails() {
         return new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + getContext().getPackageName()));
     }

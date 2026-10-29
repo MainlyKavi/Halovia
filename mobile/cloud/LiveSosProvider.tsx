@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { appendTrail, type CircleMemberInfo, type LivePoint, type LiveSos } from "@/lib/ride/live-sos";
-import { nativeStatus, setAlertMode, vibrate, watchSosLocation, type GpsFix, type NativeStatus } from "../native";
+import { nativeStatus, onNativeResume, setAlertMode, vibrate, watchSosLocation, type GpsFix, type NativeStatus } from "../native";
 import { useSafety } from "../state";
 import { createCircle, joinCircle, leaveCircle, PairingError, saveFcmToken, updateMyMember, watchCircle, watchMyCircleId, type CircleInfo } from "./circle";
 import { getCloud, watchUser, type Cloud } from "./firebase";
@@ -124,7 +124,8 @@ export function LiveSosProvider({ children }: { children: React.ReactNode }) {
     refreshNative();
     const onVisible = () => { if (document.visibilityState === "visible") refreshNative(); };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    const stopResume = onNativeResume(refreshNative);
+    return () => { document.removeEventListener("visibilitychange", onVisible); stopResume(); };
   }, [enabled, refreshNative]);
 
   // --- Circle --------------------------------------------------------------

@@ -10,10 +10,10 @@ The **Already checked** column says what was tested off-device while building th
 
 | # | Step | Expected | If not | Already checked |
 | --- | --- | --- | --- | --- |
-| 1.1 | Install the APK on both phones (uninstall the old Halovia first). Open it. | Permission screen. Header shows **DEMO MODE**. | "App not installed": uninstall the old version. | APK builds; launch is *Phone only* |
-| 1.2 | **Allow and continue**, allow location ("While using the app") and notifications. | Home screen. | Settings → Permissions shows what was denied. | *Phone only* |
+| 1.1 | Install the APK on both phones (uninstall the old Halovia first). Open it. | Permission screen. Header shows **DEMO MODE**. | "App not installed": uninstall the old version. | Android 15 emulator: launches, no crash |
+| 1.2 | **Allow and continue**, allow location ("While using the app") and notifications. | Home screen. | Settings → Permissions shows what was denied. | Android 15 emulator |
 | 1.3 | Settings → set your name (A: Shreya, B: Kavi). | Name saved. | | Browser |
-| 1.4 | Settings → Permissions → **Make sure SOS alarms get through**. Fix every row: Battery Unrestricted, Full-screen alerts on (Android 14+), Location **Allow all the time**. Return to the app. | Every row says **Allowed**. | Some phones hide these settings: search Settings for "battery" or "full screen". | *Phone only* |
+| 1.4 | Settings → Permissions → **Make sure SOS alarms get through**. Fix every row: Battery Unrestricted, Full-screen alerts on (Android 14+), Location **Allow all the time**. Return to the app. | Every row says **Allowed**. | Some phones hide these settings: search Settings for "battery" or "full screen". | Android 15 emulator: battery dialog opens and the row turns Allowed; full-screen alerts were already allowed for this sideloaded app |
 | 1.5 | Xiaomi, Oppo, Vivo, Realme or OnePlus: turn on Autostart for Halovia and lock it in recent apps. | | | *Phone only* |
 
 ## 2. Pairing
