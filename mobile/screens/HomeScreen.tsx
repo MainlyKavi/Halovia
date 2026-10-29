@@ -50,6 +50,7 @@ export function HomeScreen() {
         deviated={session.deviation.deviated}
         dark={settings.theme === "dark"}
         chip={formatDistance(remaining)}
+        followCab={Boolean(sharing)}
         labels={{ you: t("track.you"), recenter: t("track.recenter"), offline: t("track.mapOffline") }}
       />
 

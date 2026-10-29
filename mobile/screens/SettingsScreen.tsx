@@ -1,4 +1,4 @@
-import { Check, Info, RotateCcw, ShieldAlert } from "lucide-react";
+import { CarTaxiFront, Check, ChevronRight, Info, RotateCcw, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Field, TextInput, Toggle } from "@/components/ui/Primitives";
 import { RIDE_LANGUAGES } from "@/lib/ride/strings";
@@ -7,7 +7,7 @@ import { checkLocationPermission, checkNotificationPermission, requestLocationPe
 import { DEVIATION_OPTIONS, useSafety, type Speed, type Theme } from "../state";
 
 export function SettingsScreen() {
-  const { t, settings, updateSettings, resetDemo, showToast, setGpsEnabled } = useSafety();
+  const { t, settings, updateSettings, resetDemo, showToast, setGpsEnabled, navigate } = useSafety();
   const [location, setLocation] = useState<PermissionState>("prompt");
   const [notifications, setNotifications] = useState<PermissionState>("prompt");
   useEffect(() => {
@@ -21,6 +21,12 @@ export function SettingsScreen() {
   return (
     <div className="m-screen m-settings">
       <header className="m-page-head"><div><h1>{t("settings.title")}</h1></div></header>
+
+      <button type="button" className="card m-card m-settings-link" onClick={() => navigate("rapido")}>
+        <span className="m-settings-link-icon" aria-hidden="true"><CarTaxiFront size={22} /></span>
+        <span><strong>{t("rapido.entry")}</strong><small>{t("rapido.entryText")}</small></span>
+        <ChevronRight size={20} />
+      </button>
 
       <section className="card m-card m-stack">
         <Field label={t("settings.yourName")}>

@@ -16,7 +16,7 @@ export function ShareSheet() {
 }
 
 function ShareSheetBody() {
-  const { members, t, startSharing, setShareSheetOpen, navigate, showToast } = useSafety();
+  const { members, t, startSharing, setShareSheetOpen, navigate } = useSafety();
   const [selected, setSelected] = useState<string[]>(() => defaultRecipients(members));
   const [busy, setBusy] = useState(false);
   const items = [
@@ -31,7 +31,6 @@ function ShareSheetBody() {
     await startSharing(selected);
     setBusy(false);
     setShareSheetOpen(false);
-    showToast(selected.length === 1 ? t("track.sharingWithOne") : t("share.started", { count: selected.length }));
     navigate("ride");
   };
 

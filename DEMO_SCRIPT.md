@@ -15,7 +15,7 @@ Each step below also has a **Run** button on the in-app **Demo script** screen (
 
 > "When a woman takes a cab alone, the people who care about her can't see where she is or know when something goes wrong. Halovia fixes that."
 
-Show the **Home** screen: "Connected with Rapido", the map, the HELP button, "Dad & Kavi can see this journey" and the emergency helplines.
+Show the **Home** screen: "Connected with Rapido", the map, the HELP button, "Dad, Kavi +1 can view this journey" and the emergency helplines.
 
 ### 0:15 — Trusted group (20 s)
 
@@ -27,23 +27,21 @@ Optionally tap **Add member** to show the form, then cancel.
 
 ### 0:35 — The booked ride (25 s)
 
-Tap the **Connected with Rapido** chip on Home.
+Tap the **settings gear → Rapido (demo)**. This is a generic, unbranded ride-app screen (labelled "Simulated demo screen"): the cab drives toward the pickup at Echelon, "Arriving in 2 mins".
 
 > "This is the confirmation your cab app shows: driver, photo, car, number plate, fare. We can't integrate with Rapido, Ola or Uber without their APIs, so this is a mock behind a `RideProvider` interface. The real integration plugs in right here."
 
-Tap **Rapido / Ola / Uber** at the bottom to show the switch.
+(Optional: the **Connected with Rapido** chip on Home opens the Halovia-styled booking card with a Rapido / Ola / Uber switch.)
 
 ### 1:00 — Share with Halovia (20 s)
 
-Tap **Share with Halovia**. The sheet shows exactly what is shared and with whom.
+Tap **Share with Halovia**. Halovia opens with the ride active, the toast "Journey shared with Dad, Kavi +1", and the group card "Dad, Kavi +1 can view this journey" (Dad, Kavi and Niara).
 
-> "She picks who gets this ride. Live location, driver, plate and the full route."
-
-Dad and Kavi are pre-selected. Tap **Start sharing with 2**.
+> "One tap, and her trusted people can follow the ride: live location, driver, plate and the full route."
 
 ### 1:20 — Live tracking (20 s)
 
-The map shows the real road route, the cab moving, ETA, distance left, and **Sharing with 2 people**.
+The map shows the real road route, the cab moving, ETA, distance left, and **Sharing with 3 people**.
 
 > "The route comes from OpenStreetMap. The cab movement is simulated for the demo."
 
@@ -55,7 +53,7 @@ Tap **Simulate wrong turn**. Watch the chip change to "Off route by …". After 
 - a **Driver left the planned route** banner appears,
 - a system notification arrives (this stands in for the contact's push).
 
-> "If the cab stays more than 300 metres off the planned route for a few seconds, the group is alerted automatically, with the location and the nearest police station and hospital."
+> "If the cab stays more than 300 metres off the planned route for a few seconds, the group is alerted automatically, with the location, Police Station Bhupani (8.5 km) and Sarvodaya Hospital (15.6 km)."
 
 Tap **I'm OK**.
 

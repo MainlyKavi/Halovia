@@ -1,9 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { buildDeviationAlert, buildSosAlert, formatDistance, type SafetyAlert } from "@/lib/ride/alerts";
 import { DEFAULT_DEVIATION_CONFIG, evaluateDeviation, INITIAL_DEVIATION_STATE, type DeviationState } from "@/lib/ride/deviation";
-import { haversineMetres, type LatLng } from "@/lib/ride/geo";
-import { DEMO_MEMBERS, reconcileSelection, removeMember, upsertMember, type GroupMember } from "@/lib/ride/group";
-import { FALLBACK_SAFETY_PLACES, fetchSafetyPlaces, nearestSafetyPlaces, type NearestSafetyPlaces, type SafetyPlacesResult } from "@/lib/ride/places";
+import type { LatLng } from "@/lib/ride/geo";
+import { DEMO_MEMBERS, reconcileSelection, removeMember, summarizeViewers, upsertMember, type GroupMember } from "@/lib/ride/group";
+import { FIXED_NEAREST } from "@/lib/ride/places";
 import { DEMO_PICKUP, MockRideProvider, type RideBrand, type RideDetails, type RideProvider } from "@/lib/ride/ride-provider";
 import { FALLBACK_PLANNED_ROUTE, fetchPlannedRoute, type PlannedRoute } from "@/lib/ride/route";
 import { advanceSimulation, cabPosition, INITIAL_SIMULATION, remainingMetres, startWrongTurn, type CabPosition, type CabSimulation } from "@/lib/ride/simulation";
@@ -13,7 +13,7 @@ import { publishSnapshot, readSnapshot, subscribeSnapshot, clearSnapshot, type S
 
 export type Theme = "pink" | "light" | "dark";
 export type Speed = "realistic" | "fast" | "veryFast";
-export type Screen = "home" | "emergency" | "ride" | "group" | "settings" | "booked" | "script" | "contact";
+export type Screen = "home" | "emergency" | "ride" | "group" | "settings" | "booked" | "script" | "contact" | "rapido";
 
 /** Simulated cab speed in metres per second. "Realistic" is ~40 km/h city traffic. */
 export const SPEEDS: Record<Speed, number> = { realistic: 11, fast: 45, veryFast: 110 };
@@ -128,8 +128,7 @@ interface SafetyContextValue {
   gps: GpsFix | null;
   gpsStatus: GpsStatus;
   setGpsEnabled: (enabled: boolean) => void;
-  places: SafetyPlacesResult | null;
-  nearest: NearestSafetyPlaces;
+  nearest: typeof FIXED_NEAREST;
   snapshot: SharedSnapshot | null;
   changeBrand: (brand: RideBrand) => void;
   startSharing: (recipientIds: string[]) => Promise<void>;
@@ -158,19 +157,15 @@ export function SafetyProvider({ role, children }: { role: "rider" | "contact"; 
   const [gps, setGps] = useState<GpsFix | null>(null);
   const [gpsStatus, setGpsStatus] = useState<GpsStatus>("idle");
   const [gpsEnabled, setGpsEnabled] = useState(false);
-  const [places, setPlaces] = useState<SafetyPlacesResult | null>(null);
-  const placesCenter = useRef<LatLng | null>(null);
   const [toast, setToast] = useState<ToastMessage | null>(null);
   const [remoteSnapshot, setRemoteSnapshot] = useState<SharedSnapshot | null>(() => (role === "contact" ? readSnapshot() : null));
 
   const settingsRef = useRef(settings);
   const membersRef = useRef(members);
   const gpsRef = useRef(gps);
-  const placesRef = useRef(places);
   useEffect(() => { settingsRef.current = settings; write(SETTINGS_KEY, settings); }, [settings]);
   useEffect(() => { membersRef.current = members; write(MEMBERS_KEY, members); }, [members]);
   useEffect(() => { gpsRef.current = gps; }, [gps]);
-  useEffect(() => { placesRef.current = places; }, [places]);
 
   /** Every session change goes through here so timers never act on stale state. */
   const mutate = useCallback((update: (current: Session) => Session) => {
@@ -224,22 +219,10 @@ export function SafetyProvider({ role, children }: { role: "rider" | "contact"; 
   const remaining = route ? remainingMetres(route, session.simulation) : session.ride ? FALLBACK_PLANNED_ROUTE.distanceMetres : 0;
   const etaMinutes = Math.max(0, Math.round(remaining / SPEEDS.realistic / 60));
 
-  // Nearby police and hospitals: refetch only after moving ~2.5 km. The
-  // location changes every tick, so a request is not cancelled by the next
-  // tick; only the newest request may update state.
-  const placesRequest = useRef(0);
-  useEffect(() => {
-    if (role !== "rider") return;
-    if (placesCenter.current && haversineMetres(placesCenter.current, location) < 2_500) return;
-    placesCenter.current = location;
-    const request = (placesRequest.current += 1);
-    void fetchSafetyPlaces(location, { store: localStorage }).then((result) => { if (request === placesRequest.current) setPlaces(result); });
-  }, [location, role]);
-
-  // Until the first lookup finishes, alerts still carry the offline list.
-  const nearest = useMemo(() => nearestSafetyPlaces(places?.places ?? FALLBACK_SAFETY_PLACES, location), [location, places]);
+  // Nearest police station and hospital for the demo area (fixed data; see
+  // lib/ride/places.ts). Always present, so alerts never lack them.
+  const nearest = FIXED_NEAREST;
   const nearestRef = useRef(nearest);
-  useEffect(() => { nearestRef.current = nearest; }, [nearest]);
 
   const recipientsFor = useCallback((current: Session) => current.sharing?.recipientIds ?? membersRef.current.map((member) => member.id), []);
 
@@ -329,7 +312,13 @@ export function SafetyProvider({ role, children }: { role: "rider" | "contact"; 
     mutate((current) => ({ ...current, route: planned, sharing: { recipientIds, startedAt: Date.now() }, simulation: INITIAL_SIMULATION, deviation: INITIAL_DEVIATION_STATE, arrivedAt: null, riderDeviationAlertId: null }));
     void vibrate("tap");
     enableGps(true);
-  }, [enableGps, mutate]);
+    const language = settingsRef.current.language;
+    const names = summarizeViewers(membersRef.current.filter((member) => recipientIds.includes(member.id)).map((member) => member.name), {
+      pair: translateRide(language, "home.viewersPair"),
+      more: translateRide(language, "home.viewersMore"),
+    });
+    showToast(translateRide(language, "share.journeyShared", { names }));
+  }, [enableGps, mutate, showToast]);
 
   const endRide = useCallback(() => {
     void providerFor(settingsRef.current.brand).getActiveRide().then((ride) => {
@@ -391,10 +380,10 @@ export function SafetyProvider({ role, children }: { role: "rider" | "contact"; 
 
   const value = useMemo<SafetyContextValue>(() => ({
     role, settings, updateSettings, members, saveMember, deleteMember, t, locale, screen, navigate, shareSheetOpen, setShareSheetOpen,
-    session, cab, remaining, etaMinutes, location, gps, gpsStatus, setGpsEnabled: enableGps, places, nearest, snapshot, changeBrand, startSharing, endRide,
+    session, cab, remaining, etaMinutes, location, gps, gpsStatus, setGpsEnabled: enableGps, nearest, snapshot, changeBrand, startSharing, endRide,
     simulateWrongTurn, triggerSos, cancelSos, stopSos, silenceSiren, dismissDeviation, acknowledgeAlert, resetDemo, toast, showToast,
   }), [role, settings, updateSettings, members, saveMember, deleteMember, t, locale, screen, navigate, shareSheetOpen, session, cab, remaining, etaMinutes,
-    location, gps, gpsStatus, enableGps, places, nearest, snapshot, changeBrand, startSharing, endRide, simulateWrongTurn, triggerSos, cancelSos, stopSos,
+    location, gps, gpsStatus, enableGps, nearest, snapshot, changeBrand, startSharing, endRide, simulateWrongTurn, triggerSos, cancelSos, stopSos,
     silenceSiren, dismissDeviation, acknowledgeAlert, resetDemo, toast, showToast]);
 
   return <SafetyContext.Provider value={value}>{children}</SafetyContext.Provider>;

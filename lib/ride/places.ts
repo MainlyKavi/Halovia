@@ -8,6 +8,12 @@ export interface SafetyPlace {
   name: string;
   location: LatLng;
   phone?: string;
+  address?: string;
+  /**
+   * Distance to show in the app, as given by the project brief, instead of the
+   * straight-line distance from the current position.
+   */
+  statedDistanceMetres?: number;
 }
 
 export interface NearbySafetyPlace extends SafetyPlace {
@@ -19,22 +25,50 @@ export interface NearestSafetyPlaces {
   hospital: NearbySafetyPlace | null;
 }
 
+// Optional live lookup (Overpass). The mobile app uses the fixed places above;
+// these helpers remain for a future "find help anywhere" mode.
 export const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 
-// Snapshot of OpenStreetMap data (© OpenStreetMap contributors, ODbL) taken
-// from Overpass around the demo route in Bengaluru. Used whenever the live
-// Overpass request fails or times out, so the demo never shows an empty card.
-export const FALLBACK_SAFETY_PLACES: SafetyPlace[] = [
-  { id: "osm-police-indiranagar", kind: "police", name: "Indira Nagar Police Station", location: { lat: 12.983019, lng: 77.6384106 } },
-  { id: "osm-police-jb-nagar", kind: "police", name: "Jeevan Bhima Nagar Police Station", location: { lat: 12.9677712, lng: 77.6556937 } },
-  { id: "osm-police-commercial-street", kind: "police", name: "Commercial Street Police Station", location: { lat: 12.9825702, lng: 77.6070982 } },
-  { id: "osm-police-cubbon-park", kind: "police", name: "Cubbon Park Police Station", location: { lat: 12.9762399, lng: 77.5983458 } },
-  { id: "osm-hospital-acura", kind: "hospital", name: "Acura Speciality Hospital", location: { lat: 12.9353208, lng: 77.6205504 }, phone: "+91 80 4110 5151" },
-  { id: "osm-hospital-apollo-spectra", kind: "hospital", name: "Apollo Spectra Hospitals", location: { lat: 12.9338175, lng: 77.6201615 } },
-  { id: "osm-hospital-cambridge", kind: "hospital", name: "Cambridge Hospital", location: { lat: 12.9716236, lng: 77.6273835 } },
-  { id: "osm-hospital-axon", kind: "hospital", name: "Axon Speciality Hospital", location: { lat: 12.973892, lng: 77.6460904 }, phone: "080 4334 6333" },
-  { id: "osm-hospital-cloudnine", kind: "hospital", name: "Cloudnine Hospital", location: { lat: 12.9597752, lng: 77.6569127 } },
-];
+// Fixed safety places for the demo start point (Echelon Institute of
+// Technology, Faridabad). These are the primary source: the app always shows
+// them, so SOS and route alerts never say "nothing found".
+//
+// Coordinates:
+// - Sarvodaya Hospital and Research Centre, YMCA Road, Sector 8: OpenStreetMap
+//   node 6895526377 (looked up via Overpass).
+// - Police Station Bhupani, Sector 89: OpenStreetMap has no mapped point for
+//   this station, so this uses the Sector 89, Faridabad centroid from
+//   Nominatim (OSM). Treat it as approximate (within ~1 km).
+// Distances are the figures from the brief. From Echelon, OSRM gives 9.2 km by
+// road (8.4 km straight) to the police point and 14.0 km by road (13.0 km
+// straight) to Sarvodaya.
+export const FIXED_POLICE: SafetyPlace = {
+  id: "fixed-police-bhupani",
+  kind: "police",
+  name: "Police Station Bhupani",
+  address: "Bhopani, Ferrous City, Phase 1, Sector 89, Faridabad, Haryana 121014",
+  location: { lat: 28.4210247, lng: 77.3667617 },
+  phone: "112",
+  statedDistanceMetres: 8_500,
+};
+
+export const FIXED_HOSPITAL: SafetyPlace = {
+  id: "fixed-hospital-sarvodaya-s8",
+  kind: "hospital",
+  name: "Sarvodaya Hospital",
+  address: "YMCA Road, Sector 8, Faridabad, Haryana",
+  location: { lat: 28.4222263, lng: 77.3167697 },
+  phone: "108",
+  statedDistanceMetres: 15_600,
+};
+
+export const FIXED_SAFETY_PLACES: SafetyPlace[] = [FIXED_POLICE, FIXED_HOSPITAL];
+
+/** The fixed demo places, ready to show. Never contains nulls. */
+export const FIXED_NEAREST: { police: NearbySafetyPlace; hospital: NearbySafetyPlace } = {
+  police: { ...FIXED_POLICE, distanceMetres: FIXED_POLICE.statedDistanceMetres ?? 0 },
+  hospital: { ...FIXED_HOSPITAL, distanceMetres: FIXED_HOSPITAL.statedDistanceMetres ?? 0 },
+};
 
 export function buildOverpassQuery(center: LatLng, radiusMetres = 4_000): string {
   const around = `around:${Math.round(radiusMetres)},${center.lat.toFixed(5)},${center.lng.toFixed(5)}`;
@@ -80,7 +114,7 @@ export function nearestSafetyPlaces(places: readonly SafetyPlace[], from: LatLng
     let best: NearbySafetyPlace | null = null;
     for (const place of places) {
       if (place.kind !== kind || !isLikelyEmergencyFacility(place)) continue;
-      const distanceMetres = haversineMetres(from, place.location);
+      const distanceMetres = place.statedDistanceMetres ?? haversineMetres(from, place.location);
       if (!best || distanceMetres < best.distanceMetres) best = { ...place, distanceMetres };
     }
     return best;
@@ -151,5 +185,5 @@ export async function fetchSafetyPlaces(center: LatLng, options: FetchSafetyPlac
     }
   }
   if (cached && Array.isArray(cached.places) && cached.places.length) return { places: cached.places, source: "cache" };
-  return { places: FALLBACK_SAFETY_PLACES, source: "fallback" };
+  return { places: FIXED_SAFETY_PLACES, source: "fallback" };
 }

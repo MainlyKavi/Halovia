@@ -2,18 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildDeviationAlert, buildSosAlert, directionsLink, formatAlertText, formatDistance, locationLink } from "./alerts.ts";
 import { DEFAULT_DEVIATION_CONFIG, evaluateDeviation, INITIAL_DEVIATION_STATE, type DeviationState } from "./deviation.ts";
-import { FALLBACK_ROUTE, FALLBACK_ROUTE_DISTANCE_METRES } from "./fallback-route.ts";
+import { FALLBACK_ROUTE, FALLBACK_ROUTE_DISTANCE_METRES, PICKUP_APPROACH_ROUTE } from "./fallback-route.ts";
 import { destinationPoint, distanceToPolylineMetres, haversineMetres, pointAlongPolyline, polylineLengthMetres, projectOntoPolyline, slicePolyline, type LatLng } from "./geo.ts";
 import { DEMO_MEMBERS, defaultRecipients, initialsFor, summarizeViewers, reconcileSelection, removeMember, toggleSelection, upsertMember, validateMember } from "./group.ts";
-import { buildOverpassQuery, FALLBACK_SAFETY_PLACES, fetchSafetyPlaces, nearestSafetyPlaces, parseOverpassResponse, placesCacheKey, type KeyValueStore } from "./places.ts";
-import { createMockRide, MockRideProvider } from "./ride-provider.ts";
+import { buildOverpassQuery, FIXED_HOSPITAL, FIXED_NEAREST, FIXED_POLICE, FIXED_SAFETY_PLACES, fetchSafetyPlaces, nearestSafetyPlaces, parseOverpassResponse, placesCacheKey, type KeyValueStore } from "./places.ts";
+import { createMockRide, DEMO_DROP, DEMO_PICKUP, MockRideProvider } from "./ride-provider.ts";
 import { FALLBACK_PLANNED_ROUTE, fetchPlannedRoute, parseOsrmResponse } from "./route.ts";
 import { advanceSimulation, cabPosition, DETOUR_LENGTH_METRES, INITIAL_SIMULATION, remainingMetres, startWrongTurn } from "./simulation.ts";
 
 const near = (actual: number, expected: number, tolerance: number, message?: string) =>
   assert.ok(Math.abs(actual - expected) <= tolerance, message ?? `expected ${actual} to be within ${tolerance} of ${expected}`);
 
-// A straight east-west road of ~1.08 km along the equator-ish latitude of Bengaluru.
+// A straight east-west test road of ~1.08 km.
 const west: LatLng = { lat: 12.95, lng: 77.6 };
 const east: LatLng = { lat: 12.95, lng: 77.61 };
 const straight = [west, east];
@@ -154,8 +154,8 @@ test("simulated cab follows the route, takes a wrong turn and rejoins", () => {
 });
 
 test("trusted group helpers validate, upsert and keep selections in sync", () => {
-  assert.equal(initialsFor("Lakshmi Iyer"), "LI");
-  assert.equal(initialsFor("  priya  "), "PR");
+  assert.equal(initialsFor("Kavi Goutam"), "KG");
+  assert.equal(initialsFor("  niara  "), "NI");
   assert.equal(initialsFor("Ana María de la Cruz"), "AC");
   assert.equal(initialsFor(""), "?");
   assert.equal(initialsFor("सीता देवी"), "सद");
@@ -164,13 +164,13 @@ test("trusted group helpers validate, upsert and keep selections in sync", () =>
   assert.deepEqual(validateMember({ name: "A", phone: "+91 (900) 000-0001" }), []);
   assert.deepEqual(validateMember({ name: "A", phone: "call me" }), ["phoneInvalid"]);
 
-  const added = upsertMember(DEMO_MEMBERS, { id: "new", name: " Meera Rao ", phone: "+91 90000 00009", relation: "Aunt", initials: "", color: "#000" });
+  const added = upsertMember(DEMO_MEMBERS, { id: "new", name: "  New Member ", phone: "+91 90000 00009", relation: "Aunt", initials: "", color: "#000" });
   assert.equal(added.length, 5);
-  assert.equal(added[4].name, "Meera Rao");
-  assert.equal(added[4].initials, "MR");
-  const edited = upsertMember(added, { ...added[4], name: "Meera R" });
+  assert.equal(added[4].name, "New Member");
+  assert.equal(added[4].initials, "NM");
+  const edited = upsertMember(added, { ...added[4], name: "New M" });
   assert.equal(edited.length, 5);
-  assert.equal(edited[4].name, "Meera R");
+  assert.equal(edited[4].name, "New M");
 
   const selection = toggleSelection(toggleSelection([], "new"), "member-niara");
   assert.deepEqual(selection, ["new", "member-niara"]);
@@ -184,7 +184,12 @@ test("viewer summary and default recipients match the demo group", () => {
   assert.equal(summarizeViewers(["Dad"], templates), "Dad");
   assert.equal(summarizeViewers(["Dad", "Kavi Goutam"], templates), "Dad & Kavi");
   assert.equal(summarizeViewers(DEMO_MEMBERS.map((member) => member.name), templates), "Dad, Kavi +2");
-  assert.deepEqual(defaultRecipients(DEMO_MEMBERS), ["member-dad", "member-kavi"]);
+  // The demo journey is viewed by Dad, Kavi Goutam and Niara.
+  const viewers = defaultRecipients(DEMO_MEMBERS);
+  assert.deepEqual(viewers, ["member-dad", "member-kavi", "member-niara"]);
+  const viewerNames = DEMO_MEMBERS.filter((member) => viewers.includes(member.id)).map((member) => member.name);
+  assert.equal(summarizeViewers(viewerNames, templates), "Dad, Kavi +1");
+  assert.equal(templates.more.length > 0 && `${summarizeViewers(viewerNames, templates)} can view this journey`, "Dad, Kavi +1 can view this journey");
   assert.deepEqual(defaultRecipients(DEMO_MEMBERS.map((member) => ({ ...member, shareByDefault: false }))), DEMO_MEMBERS.map((member) => member.id));
   assert.equal(initialsFor("Kavi Goutam"), "KG");
 });
@@ -207,17 +212,33 @@ test("Overpass parsing keeps named police and hospitals with coordinates", () =>
   assert.match(buildOverpassQuery({ lat: 12.95, lng: 77.62 }, 3_000), /around:3000,12\.95000,77\.62000/u);
 });
 
-test("nearest safety places skip specialist clinics and measure distance", () => {
-  const from = FALLBACK_ROUTE[0];
-  const nearest = nearestSafetyPlaces([
-    ...FALLBACK_SAFETY_PLACES,
-    { id: "eye", kind: "hospital", name: "Prasad Eye Hospital", location: from },
-  ], from);
-  assert.notEqual(nearest.hospital?.id, "eye", "the eye clinic is closer but is not an emergency hospital");
-  assert.equal(nearest.hospital?.name, "Apollo Spectra Hospitals");
-  assert.ok(nearest.police);
-  assert.ok((nearest.hospital?.distanceMetres ?? 0) > 0);
-  assert.deepEqual(nearestSafetyPlaces([], from), { police: null, hospital: null });
+test("fixed safety places match the brief and are always present", () => {
+  assert.equal(FIXED_POLICE.name, "Police Station Bhupani");
+  assert.match(FIXED_POLICE.address ?? "", /Sector 89, Faridabad, Haryana 121014/u);
+  assert.equal(FIXED_POLICE.statedDistanceMetres, 8_500);
+  assert.equal(FIXED_HOSPITAL.name, "Sarvodaya Hospital");
+  assert.match(FIXED_HOSPITAL.address ?? "", /Sector 8, Faridabad/u);
+  assert.equal(FIXED_HOSPITAL.statedDistanceMetres, 15_600);
+  assert.equal(formatDistance(FIXED_NEAREST.police.distanceMetres), "8.5 km");
+  assert.equal(formatDistance(FIXED_NEAREST.hospital.distanceMetres), "15.6 km");
+  // Both points are in Faridabad, and the straight-line distances from the
+  // Echelon start point are what the README reports (8.4 km and 13.0 km).
+  near(haversineMetres(DEMO_PICKUP.location, FIXED_POLICE.location), 8_400, 150);
+  near(haversineMetres(DEMO_PICKUP.location, FIXED_HOSPITAL.location), 13_000, 150);
+  // Stated distances win over computed ones wherever the user is.
+  const nearest = nearestSafetyPlaces(FIXED_SAFETY_PLACES, FALLBACK_ROUTE[200]);
+  assert.equal(nearest.police?.distanceMetres, 8_500);
+  assert.equal(nearest.hospital?.distanceMetres, 15_600);
+  assert.deepEqual(nearestSafetyPlaces([], DEMO_PICKUP.location), { police: null, hospital: null });
+});
+
+test("the demo ride starts at Echelon and the route begins there", () => {
+  assert.equal(DEMO_PICKUP.label, "Echelon Institute of Technology");
+  assert.match(DEMO_PICKUP.address, /Faridabad, Haryana 121101/u);
+  assert.ok(haversineMetres(FALLBACK_ROUTE[0], DEMO_PICKUP.location) < 100, "route starts at the pickup");
+  assert.ok(haversineMetres(FALLBACK_ROUTE[FALLBACK_ROUTE.length - 1], DEMO_DROP.location) < 150, "route ends at the drop");
+  assert.ok(haversineMetres(PICKUP_APPROACH_ROUTE[PICKUP_APPROACH_ROUTE.length - 1], DEMO_PICKUP.location) < 100, "approach ends at the pickup");
+  assert.ok(createMockRide("rapido").pickupEtaMinutes === 2);
 });
 
 function memoryStore(): KeyValueStore & { data: Map<string, string> } {
@@ -232,7 +253,7 @@ test("safety places fall back offline, cache live results and reuse them", async
   const failing = (async () => { throw new Error("offline"); }) as unknown as typeof fetch;
   const offline = await fetchSafetyPlaces(center, { fetcher: failing, store: memoryStore() });
   assert.equal(offline.source, "fallback");
-  assert.equal(offline.places, FALLBACK_SAFETY_PLACES);
+  assert.equal(offline.places, FIXED_SAFETY_PLACES);
 
   const store = memoryStore();
   const live = await fetchSafetyPlaces(center, {
@@ -282,14 +303,14 @@ test("mock ride provider is clearly simulated and branded by text only", async (
   const ride = await provider.getActiveRide();
   assert.equal(ride?.isSimulated, true);
   assert.equal(ride?.brand, "ola");
-  assert.match(ride?.vehicle.plate ?? "", /^KA \d{2} [A-Z]{2} \d{4}$/u);
+  assert.match(ride?.vehicle.plate ?? "", /^HR \d{2} [A-Z]{2} \d{4}$/u);
   assert.notEqual(createMockRide("uber").vehicle.plate, createMockRide("rapido").vehicle.plate);
 });
 
 test("alerts include location link, ride, plate and nearest help", () => {
   const ride = createMockRide("rapido", 0);
   const location = FALLBACK_ROUTE[40];
-  const nearest = nearestSafetyPlaces(FALLBACK_SAFETY_PLACES, location);
+  const nearest = nearestSafetyPlaces(FIXED_SAFETY_PLACES, location);
   const sos = buildSosAlert({ id: "a1", userName: "Shreya", location, ride, nearest, recipientIds: ["m1"], now: 0 });
   assert.equal(sos.kind, "sos");
   assert.equal(sos.simulated, true);

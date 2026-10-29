@@ -17,6 +17,10 @@ interface LiveMapProps {
   labels: { you: string; recenter: string; offline: string };
   /** Floating chip in the top-right corner, e.g. distance left. */
   chip?: string | null;
+  /** Pink-tinted Halovia look; off for the neutral simulated ride-app screen. */
+  tinted?: boolean;
+  /** Pan to keep the cab in view as it moves (live rides only). */
+  followCab?: boolean;
   className?: string;
 }
 
@@ -45,7 +49,7 @@ const CAB_SVG = '<svg viewBox="0 0 24 40" width="18" height="30" aria-hidden="tr
 const POLICE_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M12 2 4 5v6c0 5 3.4 9.4 8 11 4.6-1.6 8-6 8-11V5z"/></svg>';
 const HOSPITAL_SVG = '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="currentColor" d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z"/></svg>';
 
-export function LiveMap({ route, travelledMetres, cab, user, places, deviated, dark, labels, chip, className = "" }: LiveMapProps) {
+export function LiveMap({ route, travelledMetres, cab, user, places, deviated, dark, labels, chip, tinted = true, followCab = true, className = "" }: LiveMapProps) {
   const container = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markers = useRef<{ cab?: maplibregl.Marker; user?: maplibregl.Marker; police?: maplibregl.Marker; hospital?: maplibregl.Marker }>({});
@@ -213,7 +217,7 @@ export function LiveMap({ route, travelledMetres, cab, user, places, deviated, d
   // Keep the cab in view while it moves.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !ready || !cab) return;
+    if (!map || !ready || !cab || !followCab) return;
     const bounds = map.getBounds();
     const inset = 0.15;
     const lngSpan = bounds.getEast() - bounds.getWest();
@@ -221,7 +225,7 @@ export function LiveMap({ route, travelledMetres, cab, user, places, deviated, d
     const inside = cab.point.lng > bounds.getWest() + lngSpan * inset && cab.point.lng < bounds.getEast() - lngSpan * inset
       && cab.point.lat > bounds.getSouth() + latSpan * inset && cab.point.lat < bounds.getNorth() - latSpan * inset;
     if (!inside) map.easeTo({ center: toLngLat(cab.point), duration: reducedMotion() ? 0 : 600 });
-  }, [cab, ready]);
+  }, [cab, followCab, ready]);
 
   const recenter = () => {
     const map = mapRef.current;
@@ -236,9 +240,9 @@ export function LiveMap({ route, travelledMetres, cab, user, places, deviated, d
   };
 
   return (
-    <div className={`live-map ${dark ? "" : "live-map-tinted"} ${className}`}>
+    <div className={`live-map ${tinted && !dark ? "live-map-tinted" : ""} ${className}`}>
       <div ref={container} className="live-map-canvas" />
-      {!ready && !offline && <div className="live-map-loading" aria-hidden="true"><span /></div>}
+      {!ready && !offline && <div className="live-map-skeleton" aria-hidden="true"><i /><i /><i /><b /></div>}
       {chip && <span className="live-map-chip m-glass"><MapPin size={15} />{chip}</span>}
       {offline && <p className="live-map-note m-glass">{labels.offline}</p>}
       <button type="button" className="live-map-recenter m-glass" onClick={recenter} aria-label={labels.recenter}><LocateFixed size={19} /></button>

@@ -74,6 +74,6 @@ export function summarizeViewers(names: readonly string[], templates: { pair: st
 export const DEMO_MEMBERS: GroupMember[] = [
   { id: "member-dad", name: "Dad", phone: "+91 90000 00001", relation: "Father", initials: "DA", color: MEMBER_COLORS[0], shareByDefault: true },
   { id: "member-kavi", name: "Kavi Goutam", phone: "+91 90000 00002", relation: "Brother", initials: "KG", color: MEMBER_COLORS[1], shareByDefault: true },
-  { id: "member-niara", name: "Niara", phone: "+91 90000 00003", relation: "Best friend", initials: "NI", color: MEMBER_COLORS[2] },
+  { id: "member-niara", name: "Niara", phone: "+91 90000 00003", relation: "Best friend", initials: "NI", color: MEMBER_COLORS[2], shareByDefault: true },
   { id: "member-milan", name: "Milan", phone: "+91 90000 00004", relation: "Cousin", initials: "MI", color: MEMBER_COLORS[3] },
 ];

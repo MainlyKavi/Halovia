@@ -432,3 +432,79 @@ body { background: var(--app-bg) fixed; }
 .m-link { font-size: .78rem; }
 @media (max-width: 380px) { .m-pink-title { font-size: .98rem; } .m-link { font-size: .72rem; } }
 .m-emergency-card .m-card-head { flex-wrap: wrap; row-gap: .1rem; }
+
+/* ===== Polish pass: one spacing, type and radius scale ===== */
+:root {
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px;
+  --r-sm: 12px; --r-md: 16px; --r-lg: 24px; --r-pill: 999px;
+  --fs-xs: .75rem; --fs-sm: .875rem; --fs-md: 1rem; --fs-lg: 1.25rem; --fs-xl: 1.6rem;
+  --shadow-card: 0 10px 28px color-mix(in srgb, var(--accent), transparent 91%), 0 1px 3px rgba(40, 20, 30, .04);
+}
+:root[data-theme="dark"] { --shadow-card: 0 10px 28px rgba(0,0,0,.28); }
+.m-screen { padding: var(--sp-2) var(--sp-4) var(--sp-6); gap: var(--sp-4); }
+.m-card { padding: var(--sp-4); gap: var(--sp-3); border-radius: var(--r-lg); box-shadow: var(--shadow-card); }
+.m-page-head h1 { font-size: var(--fs-xl); }
+.m-page-head p { font-size: var(--fs-sm); }
+.m-card-head h3, .m-card-title { font-size: var(--fs-md); }
+.button { border-radius: var(--r-md); }
+.m-help { border-radius: var(--r-lg); }
+.m-group-card, .m-emergency-card, .m-home-map { border-radius: var(--r-lg); }
+.m-line { border-radius: var(--r-md); }
+.m-chip, .m-connected { border-radius: var(--r-pill); }
+.m-fineprint { font-size: var(--fs-xs); }
+
+/* Screen transition */
+.m-screen-enter { animation: m-screen-in 240ms cubic-bezier(.2,.8,.2,1) both; }
+@keyframes m-screen-in { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: none; } }
+
+/* Map skeleton while tiles and style load */
+.live-map-skeleton { position: absolute; inset: 0; z-index: 5; overflow: hidden; background: color-mix(in srgb, var(--surface-soft), var(--surface) 30%); }
+.live-map-skeleton i { position: absolute; height: 10px; border-radius: 6px; background: color-mix(in srgb, var(--line-strong), transparent 30%); }
+.live-map-skeleton i:nth-child(1) { left: 12%; top: 30%; width: 55%; transform: rotate(-12deg); }
+.live-map-skeleton i:nth-child(2) { left: 30%; top: 55%; width: 60%; transform: rotate(8deg); }
+.live-map-skeleton i:nth-child(3) { left: 8%; top: 75%; width: 40%; }
+.live-map-skeleton b { position: absolute; inset: 0; background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.55) 50%, transparent 80%); transform: translateX(-100%); animation: m-shimmer 1.3s ease-in-out infinite; }
+:root[data-theme="dark"] .live-map-skeleton b { background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,.08) 50%, transparent 80%); }
+@keyframes m-shimmer { to { transform: translateX(100%); } }
+
+/* Places: compact navigate icon in alerts */
+.m-place-go-icon { width: 38px; height: 38px; padding: 0; justify-content: center; border-radius: var(--r-sm); }
+.m-place-text span { line-height: 1.35; }
+
+/* Settings entry for the simulated ride-app page */
+.m-settings-link { width: 100%; text-align: start; color: inherit; cursor: pointer; grid-template-columns: auto 1fr auto; align-items: center; }
+.m-settings-link > span:nth-child(2) { display: grid; gap: 2px; }
+.m-settings-link small { color: var(--text-soft); font-size: var(--fs-sm); }
+.m-settings-link-icon { width: 44px; height: 44px; border-radius: var(--r-sm); display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.m-settings-link > svg { color: var(--text-faint); }
+
+/* Simulated ride-hailing screen: neutral, unbranded */
+.m-ridehail { --rh-ink: #15171c; --rh-soft: #f3f4f6; --rh-line: #e4e6ea; --rh-accent: #1f8a70; padding-top: calc(var(--safe-top) + var(--sp-3)); }
+:root[data-theme="dark"] .m-ridehail { --rh-ink: #f2f3f5; --rh-soft: #24262c; --rh-line: #34363d; }
+.m-ridehail-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
+.m-ridehail-back { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--rh-line); background: var(--surface); color: var(--rh-ink); display: grid; place-items: center; box-shadow: var(--shadow-soft); }
+.m-ridehail-badge { font-size: var(--fs-xs); font-weight: 760; letter-spacing: .02em; padding: 6px 10px; border-radius: var(--r-pill); background: var(--rh-soft); color: var(--text-soft); border: 1px dashed var(--line-strong); }
+.m-ridehail-map { height: clamp(200px, 30dvh, 260px); border-radius: var(--r-lg); }
+.m-ridehail-card { display: grid; gap: var(--sp-4); padding: var(--sp-5) var(--sp-4); border-radius: var(--r-lg); background: var(--surface); border: 1px solid var(--rh-line); color: var(--rh-ink); box-shadow: 0 10px 30px rgba(20, 22, 28, .08); }
+.m-ridehail-kicker { margin: 0; font-size: var(--fs-sm); font-weight: 700; color: var(--rh-accent); }
+.m-ridehail-card h1 { margin: -6px 0 0; font-size: var(--fs-xl); letter-spacing: -.03em; color: var(--rh-ink); }
+.m-ridehail-driver { display: grid; grid-template-columns: auto 1fr auto; gap: var(--sp-3); align-items: center; }
+.m-ridehail-driver > div:nth-child(2) { display: grid; }
+.m-ridehail-driver span { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-sm); color: var(--text-soft); }
+.m-ridehail-driver span svg { color: #e5a50a; }
+.m-ridehail-otp { display: grid; justify-items: center; padding: var(--sp-2) var(--sp-3); border-radius: var(--r-md); background: var(--rh-soft); color: var(--text-soft); }
+.m-ridehail-otp strong { color: var(--rh-ink); letter-spacing: .14em; font-size: var(--fs-lg); }
+.m-ridehail-otp small { font-size: var(--fs-xs); }
+.m-ridehail-vehicle { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); background: var(--rh-soft); }
+.m-ridehail-vehicle > div { display: grid; }
+.m-ridehail-vehicle small, .m-ridehail-fare small { color: var(--text-faint); font-size: var(--fs-xs); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.m-ridehail-fare { display: flex; align-items: baseline; justify-content: space-between; padding-top: var(--sp-3); border-top: 1px solid var(--rh-line); }
+.m-ridehail-fare strong { font-size: var(--fs-lg); }
+.m-ridehail .m-stops strong { color: var(--rh-ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  .m-screen-enter, .live-map-skeleton b { animation: none !important; }
+}
+:lang(hi) .m-help-label { letter-spacing: 0; }
+.m-ridehail-vehicle, .m-vehicle { flex-wrap: wrap; row-gap: var(--sp-2); }
+.m-ridehail-vehicle > div, .m-vehicle > div { flex: 1 1 150px; }

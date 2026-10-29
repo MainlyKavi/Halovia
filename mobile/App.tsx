@@ -10,6 +10,7 @@ import { EmergencyScreen } from "./screens/EmergencyScreen";
 import { GroupScreen } from "./screens/GroupScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { PermissionScreen } from "./screens/PermissionScreen";
+import { RapidoDemoScreen } from "./screens/RapidoDemoScreen";
 import { ScriptScreen } from "./screens/ScriptScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { TrackingScreen } from "./screens/TrackingScreen";
@@ -53,14 +54,15 @@ function Shell() {
 
   const content = {
     home: <HomeScreen />, emergency: <EmergencyScreen />, ride: <TrackingScreen />, group: <GroupScreen />, settings: <SettingsScreen />,
-    booked: <BookedScreen />, script: <ScriptScreen />, contact: <ContactScreen />,
+    booked: <BookedScreen />, script: <ScriptScreen />, contact: <ContactScreen />, rapido: <RapidoDemoScreen />,
   }[screen];
-  const showTabs = role === "rider" && screen !== "contact";
+  const fullScreen = screen === "contact" || screen === "rapido";
+  const showTabs = role === "rider" && !fullScreen;
   const activeTab = screen === "booked" ? "ride" : screen === "script" || screen === "group" ? "home" : screen;
 
   return (
     <main className={`m-app ${showTabs ? "with-tabs" : ""}`}>
-      {screen !== "contact" && (
+      {!fullScreen && (
         <header className="m-header">
           <button type="button" className="m-brand" onClick={() => navigate("home")} aria-label={t("nav.home")}><Sparkle /><span>Halovia</span></button>
           <div className="m-header-actions">
@@ -70,7 +72,7 @@ function Shell() {
         </header>
       )}
       {session.sharing && screen !== "contact" && <span className="sr-only" role="status">{t("home.activeRide")}</span>}
-      <div className="m-content" key={screen}>{content}</div>
+      <div className="m-content m-screen-enter" key={screen}>{content}</div>
       {showTabs && (
         <nav className="m-tabs" aria-label="Halovia">
           {tabs.map(({ screen: target, key, icon: Icon }) => (

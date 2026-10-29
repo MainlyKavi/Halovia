@@ -67,22 +67,25 @@ export function brandLabel(brand: RideBrand): string {
   return RIDE_BRANDS.find((item) => item.brand === brand)?.label ?? brand;
 }
 
+// Echelon Institute of Technology: OpenStreetMap node 4211294504 (Nominatim
+// reverse geocode: Chirsi, Faridabad, Haryana 121101).
 export const DEMO_PICKUP: RidePlace = {
-  label: "Forum Mall",
-  address: "Hosur Road, Koramangala, Bengaluru",
-  location: { lat: 12.934892, lng: 77.610937 },
+  label: "Echelon Institute of Technology",
+  address: "Kabulpur, Road Naharpar, Manjhawali, Faridabad, Haryana 121101",
+  location: { lat: 28.3872703, lng: 77.4440745 },
 };
 
+// Town Park, Sector 12: OpenStreetMap way 761709949 (Nominatim).
 export const DEMO_DROP: RidePlace = {
-  label: "100 Feet Road",
-  address: "HAL 2nd Stage, Indiranagar, Bengaluru",
-  location: { lat: 12.971888, lng: 77.640545 },
+  label: "Town Park",
+  address: "Sector 12, Faridabad, Haryana 121001",
+  location: { lat: 28.4399036, lng: 77.316528 },
 };
 
 const demoVehicles: Record<RideBrand, { vehicle: RideVehicle; fareInr: number }> = {
-  rapido: { vehicle: { model: "Maruti Suzuki Dzire", colour: "White", plate: "KA 03 MX 4821", category: "cab" }, fareInr: 214 },
-  ola: { vehicle: { model: "Hyundai Aura", colour: "Silver", plate: "KA 05 AJ 7316", category: "cab" }, fareInr: 238 },
-  uber: { vehicle: { model: "Toyota Etios", colour: "White", plate: "KA 01 AH 2954", category: "cab" }, fareInr: 251 },
+  rapido: { vehicle: { model: "Maruti Suzuki Dzire", colour: "White", plate: "HR 51 BK 4821", category: "cab" }, fareInr: 312 },
+  ola: { vehicle: { model: "Hyundai Aura", colour: "Silver", plate: "HR 51 AT 7316", category: "cab" }, fareInr: 338 },
+  uber: { vehicle: { model: "Toyota Etios", colour: "White", plate: "HR 29 AC 2954", category: "cab" }, fareInr: 356 },
 };
 
 export function createMockRide(brand: RideBrand, now = Date.now()): RideDetails {
@@ -94,8 +97,8 @@ export function createMockRide(brand: RideBrand, now = Date.now()): RideDetails 
     vehicle,
     pickup: DEMO_PICKUP,
     drop: DEMO_DROP,
-    pickupEtaMinutes: 3,
-    tripMinutes: 22,
+    pickupEtaMinutes: 2,
+    tripMinutes: 24,
     fareInr,
     otp: "4721",
     bookedAt: new Date(now).toISOString(),
