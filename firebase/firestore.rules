@@ -1,0 +1,125 @@
+rules_version = '2';
+
+// Halovia live SOS. Data model (see firebase/README.md):
+//   users/{uid}                    private profile + FCM token (owner only)
+//   invites/{code}                 6-character invite code -> circleId
+//   circles/{cid}                  a trusted circle (owner + paired phones)
+//   circles/{cid}/members/{uid}    who is in the circle
+//   circles/{cid}/sos/{sosId}      SOS events; readable by circle members only
+// The Cloud Functions use the Admin SDK and are not bound by these rules.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isSelf(uid) { return signedIn() && request.auth.uid == uid; }
+    function circlePath(cid) { return /databases/$(database)/documents/circles/$(cid); }
+    function invitePath(code) { return /databases/$(database)/documents/invites/$(code); }
+    function circleAfter(cid) { return getAfter(circlePath(cid)).data; }
+    function isMember(cid) { return signedIn() && exists(/databases/$(database)/documents/circles/$(cid)/members/$(request.auth.uid)); }
+    function text(value, max) { return value is string && value.size() > 0 && value.size() <= max; }
+    function optionalText(data, key, max) { return !(key in data) || (data[key] is string && data[key].size() <= max); }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+    // A map field where only the caller's own entry may change.
+    function onlyOwnEntry(field) {
+      return !(field in changed())
+        || request.resource.data[field].diff(resource.data[field]).affectedKeys().hasOnly([request.auth.uid]);
+    }
+    function validLocation(location) {
+      return location is map && location.keys().hasOnly(['lat', 'lng', 'accuracy', 'at'])
+        && location.lat is number && location.lat >= -90 && location.lat <= 90
+        && location.lng is number && location.lng >= -180 && location.lng <= 180;
+    }
+
+    match /users/{uid} {
+      allow read, delete: if isSelf(uid);
+      allow create, update: if isSelf(uid)
+        && request.resource.data.keys().hasOnly(['name', 'fcmToken', 'circleId', 'platform', 'updatedAt'])
+        && optionalText(request.resource.data, 'name', 60)
+        && optionalText(request.resource.data, 'fcmToken', 4096)
+        && optionalText(request.resource.data, 'circleId', 128);
+    }
+
+    // Anyone signed in can look up a code they were given, but never list codes.
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && code.matches('^[A-HJ-NP-Z2-9]{6}$')
+        && request.resource.data.keys().hasOnly(['circleId', 'ownerUid', 'ownerName', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && text(request.resource.data.ownerName, 60)
+        && circleAfter(request.resource.data.circleId).ownerUid == request.auth.uid;
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /circles/{cid} {
+      allow read: if isMember(cid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'ownerName', 'inviteCode', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && text(request.resource.data.ownerName, 60)
+        && text(request.resource.data.inviteCode, 6);
+      allow update: if signedIn() && resource.data.ownerUid == request.auth.uid
+        && changed().hasOnly(['ownerName', 'inviteCode']);
+      allow delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      match /members/{uid} {
+        function validMember() {
+          let data = request.resource.data;
+          return data.keys().hasOnly(['name', 'phone', 'role', 'inviteCode', 'pushReady', 'joinedAt', 'updatedAt'])
+            && text(data.name, 60)
+            && optionalText(data, 'phone', 20)
+            && (!('pushReady' in data) || data.pushReady is bool);
+        }
+        function ownerJoining() {
+          return request.resource.data.role == 'owner' && circleAfter(cid).ownerUid == request.auth.uid;
+        }
+        // Joining needs a code that points at this circle.
+        function inviteJoining() {
+          let code = request.resource.data.inviteCode;
+          return request.resource.data.role == 'member'
+            && code is string && code.size() == 6
+            && exists(invitePath(code))
+            && get(invitePath(code)).data.circleId == cid;
+        }
+
+        allow read: if isMember(cid);
+        allow create: if isSelf(uid) && validMember() && (ownerJoining() || inviteJoining());
+        allow update: if isSelf(uid) && validMember() && changed().hasOnly(['name', 'phone', 'pushReady', 'updatedAt']);
+        allow delete: if isSelf(uid) || (signedIn() && get(circlePath(cid)).data.ownerUid == request.auth.uid);
+      }
+
+      match /sos/{sosId} {
+        function validStatusChange() {
+          return !('status' in changed())
+            || (resource.data.status == 'active' && request.resource.data.status == 'ended'
+                && request.resource.data.endedBy == request.auth.uid);
+        }
+        // The person who raised the SOS streams location and can end it.
+        function senderUpdate() {
+          return resource.data.senderUid == request.auth.uid
+            && changed().hasOnly(['location', 'trail', 'status', 'endedBy', 'endedAt', 'updatedAt'])
+            && (!('location' in changed()) || validLocation(request.resource.data.location))
+            && (!('trail' in changed()) || (request.resource.data.trail is list && request.resource.data.trail.size() <= 120));
+        }
+        // Everyone else in the circle can only record their own delivery,
+        // seen and acknowledged marks, and end the SOS.
+        function recipientUpdate() {
+          return resource.data.senderUid != request.auth.uid
+            && changed().hasOnly(['deliveredTo', 'seenBy', 'ackBy', 'status', 'endedBy', 'endedAt', 'updatedAt'])
+            && onlyOwnEntry('deliveredTo') && onlyOwnEntry('seenBy') && onlyOwnEntry('ackBy');
+        }
+
+        allow read: if isMember(cid);
+        allow create: if isMember(cid)
+          && request.resource.data.keys().hasOnly(['senderUid', 'senderName', 'senderPhone', 'status', 'demo', 'createdAt', 'clientCreatedAt', 'updatedAt', 'location', 'trail', 'deliveredTo', 'seenBy', 'ackBy'])
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.status == 'active'
+          && text(request.resource.data.senderName, 60)
+          && request.resource.data.demo is bool
+          && request.resource.data.deliveredTo == {} && request.resource.data.seenBy == {} && request.resource.data.ackBy == {}
+          && (!('location' in request.resource.data) || request.resource.data.location == null || validLocation(request.resource.data.location));
+        allow update: if isMember(cid) && validStatusChange() && (senderUpdate() || recipientUpdate());
+        allow delete: if false;
+      }
+    }
+  }
+}

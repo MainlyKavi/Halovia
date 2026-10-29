@@ -1,0 +1,18 @@
+{
+  "name": "halovia-firebase",
+  "private": true,
+  "type": "module",
+  "engines": { "node": "22" },
+  "scripts": {
+    "firebase": "firebase",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-halovia \"node --test tests/rules.test.js\"",
+    "test:flow": "npm --prefix functions run build && firebase emulators:exec --only auth,firestore,functions --project demo-halovia \"node --test tests/flow.test.js\"",
+    "test": "npm run test:rules && npm run test:flow",
+    "deploy": "npm --prefix functions ci && firebase deploy --only firestore:rules,functions"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.1.0",
+    "firebase-tools": "^15.34.2"
+  }
+}

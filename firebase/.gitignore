@@ -1,0 +1,6 @@
+# Your project id lives here after `npx firebase use --add`. Copy .firebaserc.example to start.
+.firebaserc
+node_modules/
+functions/lib/
+*.log
+.runtimeconfig.json
