@@ -5,6 +5,7 @@ import { RIDE_LANGUAGES } from "@/lib/ride/strings";
 import { DEFAULT_DEVIATION_CONFIG } from "@/lib/ride/deviation";
 import { checkLocationPermission, checkNotificationPermission, requestLocationPermission, requestNotificationPermission, type PermissionState } from "../native";
 import { DEVIATION_OPTIONS, useSafety, type Speed, type Theme } from "../state";
+import { AlertSetupRows } from "../cloud/AlertSetupRows";
 
 export function SettingsScreen() {
   const { t, settings, updateSettings, resetDemo, showToast, setGpsEnabled, navigate } = useSafety();
@@ -69,6 +70,7 @@ export function SettingsScreen() {
         <h3 className="m-card-title">{t("settings.permissions")}</h3>
         <PermissionRow label={t("settings.location")} state={location} onAsk={async () => { const next = await requestLocationPermission(); setLocation(next); if (next === "granted") setGpsEnabled(true); }} />
         <PermissionRow label={t("settings.notifications")} state={notifications} onAsk={async () => setNotifications(await requestNotificationPermission())} />
+        <AlertSetupRows />
       </section>
 
       <section className="card m-card m-stack">

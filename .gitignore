@@ -47,3 +47,8 @@ next-env.d.ts
 
 # android prototype
 /dist-mobile/
+
+# Firebase config and keys (see README: Demo setup). Never commit these.
+google-services.json
+*-firebase-adminsdk-*.json
+service-account*.json
