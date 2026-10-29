@@ -508,3 +508,45 @@ body { background: var(--app-bg) fixed; }
 :lang(hi) .m-help-label { letter-spacing: 0; }
 .m-ridehail-vehicle, .m-vehicle { flex-wrap: wrap; row-gap: var(--sp-2); }
 .m-ridehail-vehicle > div, .m-vehicle > div { flex: 1 1 150px; }
+
+/* ===== Minimal Home: HELP, journey, viewers (4/8/12/16/24 scale) ===== */
+:root { --r-card: 20px; }
+.m-header { padding: var(--sp-4) var(--sp-4) var(--sp-2); justify-content: flex-start; }
+.m-brand { min-height: 48px; -webkit-touch-callout: none; user-select: none; }
+.m-brand span { font-size: var(--fs-xl); }
+.m-home { gap: var(--sp-4); padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+
+/* 1. HELP: largest element */
+.m-home .m-help, .m-help { min-height: 88px; border-radius: var(--r-card); }
+.m-help-hint { font-size: var(--fs-xs); }
+
+/* 2. Journey: status row + map in one card */
+.m-journey { display: grid; border-radius: var(--r-card); overflow: hidden; background: var(--surface); box-shadow: var(--shadow-card); }
+.m-journey-head { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: var(--sp-3); min-height: 56px; padding: var(--sp-3) var(--sp-4); border: 0; background: transparent; color: inherit; text-align: start; }
+.m-journey-head i { width: 10px; height: 10px; border-radius: 50%; background: #3cb46e; }
+.m-journey-head i.live { animation: m-pulse 1.8s infinite; }
+.m-journey-text { display: grid; min-width: 0; }
+.m-journey-text strong { font-size: var(--fs-md); font-weight: 650; }
+.m-journey-text small { font-size: var(--fs-xs); color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.m-journey-distance { font-size: var(--fs-sm); font-weight: 700; color: var(--accent-ink); }
+.m-journey-head > svg { color: var(--text-faint); }
+.m-journey .m-home-map { height: clamp(180px, 28dvh, 260px); border: 0; border-radius: 0; box-shadow: none; }
+
+/* Map controls: credit bottom-left (collapsed), locate bottom-right, 48px targets */
+.live-map .maplibregl-ctrl-bottom-left { margin: 0 0 var(--sp-2) var(--sp-2); }
+.live-map .maplibregl-ctrl-bottom-left .maplibregl-ctrl { margin: 0; }
+.live-map .maplibregl-ctrl-attrib.maplibregl-compact { min-height: 24px; font-size: 10px; background: color-mix(in srgb, var(--surface), transparent 15%); }
+.live-map .maplibregl-ctrl-attrib.maplibregl-compact-show { max-width: calc(100% - 72px); }
+.live-map-recenter { width: 48px; height: 48px; right: var(--sp-2); bottom: var(--sp-2); }
+
+/* 3. Who can view: one compact row */
+.m-viewers { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--sp-3); min-height: 56px; padding: var(--sp-2) var(--sp-4); border: 0; border-radius: var(--r-card); background: var(--surface); box-shadow: var(--shadow-card); color: inherit; text-align: start; }
+.m-viewers-text { font-size: var(--fs-sm); font-weight: 600; color: var(--text); }
+.m-viewers > svg { color: var(--text-faint); }
+
+/* Quiet secondary links */
+.m-home-links { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-2) var(--sp-6); }
+.m-text-link { display: inline-flex; align-items: center; gap: var(--sp-2); min-height: 48px; padding: 0 var(--sp-3); border: 0; background: transparent; color: var(--accent-ink); font-size: var(--fs-sm); font-weight: 600; }
+
+.m-demo-links { display: grid; gap: var(--sp-2); }
+@media (prefers-reduced-motion: reduce) { .m-journey-head i.live { animation: none; } }

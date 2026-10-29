@@ -1,4 +1,4 @@
-import { CarTaxiFront, Check, ChevronRight, Info, RotateCcw, ShieldAlert } from "lucide-react";
+import { CarTaxiFront, Check, ChevronRight, Eye, Info, ListChecks, RotateCcw, ShieldAlert } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Field, TextInput, Toggle } from "@/components/ui/Primitives";
 import { RIDE_LANGUAGES } from "@/lib/ride/strings";
@@ -45,6 +45,13 @@ export function SettingsScreen() {
       <section className="card m-card m-stack">
         <Toggle checked={settings.demoMode} onChange={(demoMode) => updateSettings({ demoMode })} label={t("settings.demoMode")} description={t("settings.demoModeText")} />
         <div className="m-sim-label"><ShieldAlert size={18} /><div><strong>{t("sos.demoLabel")}</strong><p>{t("settings.sosSimulatedText")}</p></div></div>
+        {settings.demoMode && (
+          <div className="m-demo-links">
+            <button type="button" className="button button-secondary m-block" onClick={() => navigate("contact")}><Eye size={18} />{t("demo.contactView")}</button>
+            <button type="button" className="button button-ghost m-block" onClick={() => navigate("script")}><ListChecks size={18} />{t("home.demoScript")}</button>
+            <small className="field-hint">{t("dev.hint")}</small>
+          </div>
+        )}
         <div className="m-setting">
           <span className="field-label">{t("settings.deviation")}</span>
           <div className="m-segmented">{DEVIATION_OPTIONS.map((metres) => <button key={metres} type="button" className={settings.deviationMetres === metres ? "on" : ""} aria-pressed={settings.deviationMetres === metres} onClick={() => updateSettings({ deviationMetres: metres })}>{metres} m</button>)}</div>

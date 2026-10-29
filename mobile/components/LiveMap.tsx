@@ -85,7 +85,10 @@ export function LiveMap({ route, travelledMetres, cab, user, places, deviated, d
       queueMicrotask(() => setOffline(true));
       return;
     }
+    // OpenStreetMap credit stays (licence requirement) but starts collapsed to
+    // its small "i" button, so it never covers the map controls.
     map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-left");
+    map.once("load", () => container.current?.querySelector(".maplibregl-ctrl-attrib")?.classList.remove("maplibregl-compact-show"));
     mapRef.current = map;
 
     const switchToFallback = () => {

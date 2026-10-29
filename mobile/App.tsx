@@ -1,4 +1,4 @@
-import { Eye, Home, MapPinned, Phone, Settings as SettingsIcon } from "lucide-react";
+import { Home, MapPinned, Phone, Settings as SettingsIcon } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { playSound, stopSound, unlockAudio } from "./audio";
 import { DeviationBanner, SosOverlay, ToastHost } from "./components/Overlays";
@@ -46,6 +46,43 @@ function Sparkle() {
   );
 }
 
+/**
+ * The logo goes Home on tap. A long press (600 ms) toggles presenter tools,
+ * which show the demo script link on Home.
+ */
+function BrandButton() {
+  const { navigate, t, settings, updateSettings, showToast } = useSafety();
+  const timer = useRef<number | null>(null);
+  const longPressed = useRef(false);
+  const clear = () => { if (timer.current !== null) window.clearTimeout(timer.current); timer.current = null; };
+  const start = () => {
+    longPressed.current = false;
+    clear();
+    timer.current = window.setTimeout(() => {
+      longPressed.current = true;
+      const devTools = !settings.devTools;
+      updateSettings({ devTools });
+      void vibrate("tap");
+      showToast(t(devTools ? "dev.on" : "dev.off"));
+    }, 600);
+  };
+  return (
+    <button
+      type="button"
+      className="m-brand"
+      aria-label={t("nav.home")}
+      onPointerDown={start}
+      onPointerUp={clear}
+      onPointerLeave={clear}
+      onPointerCancel={clear}
+      onContextMenu={(event) => event.preventDefault()}
+      onClick={() => { if (!longPressed.current) navigate("home"); }}
+    >
+      <Sparkle /><span>Halovia</span>
+    </button>
+  );
+}
+
 function Shell() {
   const { screen, navigate, t, settings, session } = useSafety();
   useAlertAudio();
@@ -64,11 +101,7 @@ function Shell() {
     <main className={`m-app ${showTabs ? "with-tabs" : ""}`}>
       {!fullScreen && (
         <header className="m-header">
-          <button type="button" className="m-brand" onClick={() => navigate("home")} aria-label={t("nav.home")}><Sparkle /><span>Halovia</span></button>
-          <div className="m-header-actions">
-            {settings.demoMode && <button type="button" className="m-contact-toggle" onClick={() => navigate("contact")} aria-label={t("demo.contactView")}><Eye size={16} /><span>{t("demo.badge")}</span></button>}
-            <button type="button" className="m-gear" onClick={() => navigate("settings")} aria-label={t("nav.settings")}><SettingsIcon size={26} strokeWidth={1.9} /></button>
-          </div>
+          <BrandButton />
         </header>
       )}
       {session.sharing && screen !== "contact" && <span className="sr-only" role="status">{t("home.activeRide")}</span>}

@@ -32,6 +32,8 @@ export interface Settings {
   onboarded: boolean;
   /** Which trusted member the demo contact view pretends to be. */
   contactViewerId: string | null;
+  /** Presenter tools (demo script link on Home). Toggled by long-pressing the logo. */
+  devTools?: boolean;
 }
 
 export type SosState =
