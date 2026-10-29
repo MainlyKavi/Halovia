@@ -16,6 +16,7 @@
     "mobile:build": "vite build --config vite.mobile.config.ts",
     "android:sync": "npm run mobile:build && cap sync android",
     "android:apk": "npm run android:sync && cd android && gradlew.bat assembleDebug",
+    "android:apk:unix": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "android:run": "npm run android:sync && cap run android"
   },
   "dependencies": {
